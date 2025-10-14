@@ -5,13 +5,19 @@ module ALU (
     output logic        Zero
 );
 
+    // Define ALU operations
+    parameter OP_AND = 4'b0000;
+    parameter OP_OR  = 4'b0001;
+    parameter OP_ADD = 4'b0010;
+    parameter OP_SUB = 4'b0110;
+
     always_comb begin
         case (ALUControl)
-            4'b0000: Result = A & B; // AND
-            4'b0001: Result = A | B; // OR
-            4'b0010: Result = A + B; // ADD
-            4'b0110: Result = A - B; // SUB
-            default: Result = 32'b0; // Default case
+            OP_AND: Result = A & B;
+            OP_OR: Result = A | B;
+            OP_ADD: Result = A + B;
+            OP_SUB: Result = A - B;
+            default: Result = 32'b0;
         endcase
     end
 
