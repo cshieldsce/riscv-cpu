@@ -1,7 +1,7 @@
 module DataPath (
     input logic clk, RegWrite,
     input  logic [3:0]  ALUControl,
-    input logic[4:0] rs1, rs2, rd,
+    input logic[4:0] rs1, rs2, rd
 );
 
     logic [31:0] ReadData1, ReadData2;
