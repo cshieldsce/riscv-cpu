@@ -6,9 +6,9 @@
 // Simulate and look in 'Machine Code' column
 //
 
-00000000
 002081b3 // add x3, x1, x2
 0041f2b3 // sub x5, x3, x4
 
-@63
+// Pad the rest of the memory with zeros.
+@3F
 00000000
