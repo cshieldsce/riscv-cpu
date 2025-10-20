@@ -15,6 +15,9 @@ This project is being developed to demonstrate a strong understanding of compute
 * **Single-Cycle CPU Core:** A top-level `SingleCycleCPU` module that integrates all components to fetch and execute a multi-instruction program.
 * **Verification:** The core has been verified with a top-level, self-checking testbench (`single_cycle_cpu_tb.sv`) that initializes registers, runs a program from memory, and verifies the register values.
 
+**Single-Cycle CPU Architecture:**
+![Single-Cycle CPU Diagram](docs/single_cycle_diagram.png)
+
 **This diagram illustrates the current datapath for executing R-type instructions:**
 
 ![R-Type Datapath Diagram](docs/datapath_diagram.png)
