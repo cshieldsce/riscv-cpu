@@ -15,11 +15,15 @@ module SingleCycleCPU (
     logic [4:0] rd;
     logic [4:0] rs1;
     logic [4:0] rs2;
+    logic [6:0] funct7;
+    logic [2:0] funct3;
 
     assign opcode = instruction[6:0]; // Bits 0-6
     assign rd = instruction[11:7];    // Bits 7-11
     assign rs1 = instruction[19:15];  // Bits 15-19
     assign rs2 = instruction[24:20];  // Bits 20-24
+    assign funct7 = instruction[31:25];
+    assign funct3 = instruction[14:12];
 
     // Signals from Control Unit
     logic RegWrite;
@@ -43,6 +47,8 @@ module SingleCycleCPU (
     // Decodes the 'opcode' and generates the control signals
     ControlUnit control_unit_inst (
         .opcode(opcode),
+        .funct3(funct3),
+        .funct7(funct7),
         .RegWrite(RegWrite),    // Output RegWrite signal
         .ALUControl(ALUControl) // Output ALUControl signal
     );
