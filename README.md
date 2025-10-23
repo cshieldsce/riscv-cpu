@@ -16,9 +16,6 @@
 **Single-Cycle CPU Architecture:**
 ![Single-Cycle CPU Diagram](docs/single_cycle_diagram.png)
 
-**This diagram illustrates the current datapath for executing R-type instructions:**
-![R-Type Datapath Diagram](docs/datapath_diagram.png)
-
 #### Tools & Requirements
 
 * **Simulator:** [Icarus Verilog](https://steveicarus.github.io/iverilog/) (`iverilog`) is used for compiling and simulating the design.
@@ -26,15 +23,21 @@
 
 #### Project Roadmap
 
-###### The goal of this project is to build a **complete and robust single-cycle RISC-V (RV32I) CPU core** that can execute all major instruction types.
+##### Part 1: Complete Single-Cycle CPU (Current Goal)
 
-The R-type datapath is complete. The next steps are to add support for the remaining instruction formats:
+The immediate goal is to build a **complete and robust single-cycle RISC-V (RV32I) CPU core** that can execute all major instruction types.
+* [x] **R-Type:** `add`, `sub`
 * [ ] **I-Type (Immediate):** Add support for `addi`. This requires an Immediate Generator and a new MUX for the ALU.
 * [ ] **I-Type (Load):** Add support for `lw` (load word). This requires adding a Data Memory and a MUX for the write-back data.
 * [ ] **S-Type (Store):** Add support for `sw` (store word), which uses the Data Memory.
 * [ ] **B-Type (Branch):** Add support for `beq` (branch if equal). This requires new logic to check the ALU's Zero flag and update the PC.
 * [ ] **J-Type (Jump):** Add support for `jal` (jump and link).
 * [ ] **Final Verification:** Create a comprehensive test program that uses all supported instructions to verify the full design.
+
+##### Part 2: Future Improvements (5-Stage Pipeline)
+After the single-cycle core is complete and fully verified, the project will be extended to a 5-stage pipelined processor to improve performance.
+* [ ] **Convert to 5-Stage Pipeline:** Add pipeline registers to separate the design into IF, ID, EX, MEM, and WB stages.
+* [ ] **Hazard & Forwarding Unit:** Implement logic to handle data and control hazards.
 
 #### Running the project
 To compile all the source files and the datapath testbench:
