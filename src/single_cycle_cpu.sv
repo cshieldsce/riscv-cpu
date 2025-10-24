@@ -29,6 +29,8 @@ module SingleCycleCPU (
     logic RegWrite;
     logic [3:0] ALUControl;
     logic ALUSrc;
+    logic MemWrite;
+    logic [1:0] MemToReg;
 
     // 32-bit 'datapath' wires
     logic [31:0] ReadData1;
@@ -36,6 +38,8 @@ module SingleCycleCPU (
     logic [31:0] ALUResult;
     logic [31:0] ImmGenOut;
     logic [31:0] ALU_B_Data;
+    logic [31:0] MemReadData;
+    logic [31:0] WriteData_Mux_Out;
 
     // Instruction Fetch Stage
     // Fetches the 'instruction' at the current 'pc_out'
@@ -58,9 +62,11 @@ module SingleCycleCPU (
         .opcode(opcode),
         .funct3(funct3),
         .funct7(funct7),
-        .RegWrite(RegWrite),     // Output RegWrite signal
-        .ALUControl(ALUControl), // Output ALUControl signal
-        .ALUSrc(ALUSrc)          // Output ALUSrc Signal
+        .RegWrite(RegWrite),     
+        .ALUControl(ALUControl), 
+        .ALUSrc(ALUSrc),       
+        .MemWrite(MemWrite),
+        .MemToReg(MemToReg)
     );
 
     // Register file
@@ -68,12 +74,12 @@ module SingleCycleCPU (
     RegFile reg_file_inst (
         .clk(clk),
         .RegWrite(RegWrite),
-        .rs1(rs1),              // Input address to read from
-        .rs2(rs2),              // Input Address to read from
-        .rd(rd),                // Input address to write to
-        .WriteData(ALUResult),  // Data to write (comes from ALU)
-        .ReadData1(ReadData1),  // Output data from rs1
-        .ReadData2(ReadData2)   // Output data from rs2
+        .rs1(rs1),                      // Input address to read from
+        .rs2(rs2),                      // Input Address to read from
+        .rd(rd),                        // Input address to write to
+        .WriteData(WriteData_Mux_Out),  // Data to write (comes from WriteData Mux)
+        .ReadData1(ReadData1),          // Output data from rs1
+        .ReadData2(ReadData2)           // Output data from rs2
     );
 
     // ALU B-Input MUX
@@ -90,5 +96,21 @@ module SingleCycleCPU (
         .Result(ALUResult),
         .Zero()                  // Unused for now
     );
+
+    // Data Memory
+    DataMemory data_memory_inst (
+        .clk(clk),
+        .MemWrite(MemWrite),
+        .Address(ALUResult),    // Address comes from ALU (rs1 + imm)
+        .WriteData(ReadData2),  // Data comes from RegFile (rs2)
+        .ReadData(MemReadData)  // Data read from memory
+    );
+
+    // Write-back MUX
+    // Selects the data to be written back into the Register File
+    // MemToReg = 00: Select ALU Result (R-type, addi)
+    // MemToReg = 01: Select Data from Memory (lw)
+    // MemToReg = 10: (Future use: PC+4 for jal)
+    assign WriteData_Mux_Out = (MemToReg == 2'b01) ? MemReadData : ALUResult;
 
 endmodule
