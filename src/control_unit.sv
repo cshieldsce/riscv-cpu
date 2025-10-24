@@ -44,7 +44,7 @@ module ControlUnit (
             end
             
             // Handle I-type instructions (Load Word)
-            7'b00000011: begin 
+            7'b0000011: begin 
                 RegWrite = 1'b1; // 'lw' writes to a register
                 ALUSrc = 1'b1; // Use Immediate for address offset
                 MemToReg = 2'b01; // Write data from memory to RegFile
