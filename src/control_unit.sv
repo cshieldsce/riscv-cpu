@@ -3,7 +3,7 @@ module ControlUnit (
     input logic [2:0] funct3,
     input logic [6:0] funct7,
     output logic RegWrite,
-    output logic [3:0] ALUControl
+    output logic [3:0] ALUControl,
     output logic ALUSrc
 );
 
@@ -32,11 +32,11 @@ module ControlUnit (
             7'b0010011: begin // case for 'addi'
                 RegWrite = 1'b1;
                 ALUSrc = 1'b1;
-                ALUControl = OP_ADD
+                ALUControl = OP_ADD;
             end
 
             // ldr/str will go here
-            
+
         endcase
     end
 

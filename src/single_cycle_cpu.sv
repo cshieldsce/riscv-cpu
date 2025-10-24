@@ -28,11 +28,14 @@ module SingleCycleCPU (
     // Signals from Control Unit
     logic RegWrite;
     logic [3:0] ALUControl;
+    logic ALUSrc;
 
     // 32-bit 'datapath' wires
     logic [31:0] ReadData1;
     logic [31:0] ReadData2;
     logic [31:0] ALUResult;
+    logic [31:0] ImmGenOut;
+    logic [31:0] ALU_B_Data;
 
     // Instruction Fetch Stage
     // Fetches the 'instruction' at the current 'pc_out'
@@ -43,14 +46,21 @@ module SingleCycleCPU (
         .pc_out(pc_out)                // Output the current PC
     );
 
+    // Immediate Generator
+    ImmGen imm_gen_inst (
+        .instruction(instruction),
+        .imm_out(ImmGenOut)
+    );
+
     // Control Unit
     // Decodes the 'opcode' and generates the control signals
     ControlUnit control_unit_inst (
         .opcode(opcode),
         .funct3(funct3),
         .funct7(funct7),
-        .RegWrite(RegWrite),    // Output RegWrite signal
-        .ALUControl(ALUControl) // Output ALUControl signal
+        .RegWrite(RegWrite),     // Output RegWrite signal
+        .ALUControl(ALUControl), // Output ALUControl signal
+        .ALUSrc(ALUSrc)          // Output ALUSrc Signal
     );
 
     // Register file
@@ -66,11 +76,16 @@ module SingleCycleCPU (
         .ReadData2(ReadData2)   // Output data from rs2
     );
 
+    // ALU B-Input MUX
+    // If ALUSrc is 0, it selects ReadData2 (for R-type)
+    // If ALUSrc is 1, it selects ImmGenOut (for I-type)
+    assign ALU_B_Data = (ALUSrc == 0) ? ReadData2 : ImmGenOut;
+
     // ALU
-    // This block performs the calculation
+    // Performs the calculation
     ALU alu_inst (
         .A(ReadData1),           // Input data from RegFile (rs1)
-        .B(ReadData2),           // Input data from RegFile (rs2)
+        .B(ALU_B_Data),          // Input data from RegFile (rs2)
         .ALUControl(ALUControl),
         .Result(ALUResult),
         .Zero()                  // Unused for now
