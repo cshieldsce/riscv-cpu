@@ -6,6 +6,7 @@ module single_cycle_cpu_tb;
     logic [31:0] result_x3;
     logic [31:0] result_x5;
     logic [31:0] result_x7;
+    logic [31:0] result_x9;
 
     SingleCycleCPU cpu_inst (
         .clk(clk),
@@ -49,11 +50,13 @@ module single_cycle_cpu_tb;
         // 1. add x3, x1, x2  (x1=10, x2=0) -> x3 should be 10
         // 2. sub x5, x3, x4  (x3=10, x4=5) -> x5 should be 5
         // 3. sub x7, x5, x6  (x5=5, x6=4)  -> x7 should be 1
+        // 4. addi x6, x1, 50 (x1=10, imm=50) -> x6 should be 60
 
         // Read the values from the register file's memory
         result_x3 = cpu_inst.reg_file_inst.register_memory[3];
         result_x5 = cpu_inst.reg_file_inst.register_memory[5];
         result_x7 = cpu_inst.reg_file_inst.register_memory[7];
+        result_x9 = cpu_inst.reg_file_inst.register_memory[9];
 
         if (result_x3 != 32'd10) begin
             $error("FAIL: 'add' instruction. Expected x3=10, but got %d.", result_x3);
@@ -71,6 +74,12 @@ module single_cycle_cpu_tb;
             $error("FAIL: 'sub' instruction. Expected x7=1, but got %d.", result_x7);
         end else begin
             $display("PASS: 'sub' instruction (x7 = 1) correct.");
+        end
+
+        if (result_x9 != 32'd60) begin
+            $error("FAIL: 'addi' instruction. Expected x9=60, but got %d", result_x9);
+        end else begin
+            $display("PASS: 'addi' instruction (x9 = 60) correct.");
         end
 
         $display("Testbench Finished.");
