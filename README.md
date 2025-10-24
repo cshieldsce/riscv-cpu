@@ -27,7 +27,7 @@
 
 The immediate goal is to build a **complete and robust single-cycle RISC-V (RV32I) CPU core** that can execute all major instruction types.
 * [x] **R-Type:** `add`, `sub`
-* [ ] **I-Type (Immediate):** Add support for `addi`. This requires an Immediate Generator and a new MUX for the ALU.
+* [x] **I-Type (Immediate):** Add support for `addi`. This requires an Immediate Generator and a new MUX for the ALU.
 * [ ] **I-Type (Load):** Add support for `lw` (load word). This requires adding a Data Memory and a MUX for the write-back data.
 * [ ] **S-Type (Store):** Add support for `sw` (store word), which uses the Data Memory.
 * [ ] **B-Type (Branch):** Add support for `beq` (branch if equal). This requires new logic to check the ALU's Zero flag and update the PC.
@@ -42,7 +42,7 @@ After the single-cycle core is complete and fully verified, the project will be 
 #### Running the project
 To compile all the source files and the datapath testbench:
 ```bash
-iverilog -g2012 -o cpu.out src/pc.sv src/instruction_memory.sv src/if_stage.sv src/alu.sv src/reg_file.sv src/control_unit.sv src/single_cycle_cpu.sv test/single_cycle_cpu_tb.sv
+iverilog -g2012 -o cpu.out src/pc.sv src/instruction_memory.sv src/if_stage.sv src/alu.sv src/reg_file.sv src/control_unit.sv src/single_cycle_cpu.sv src/imm_gen.sv test/single_cycle_cpu_tb.sv
 ```
 To run the simulation:
 ```bash
