@@ -10,6 +10,8 @@
 0041f2b3 // sub x5, x3, x4
 406283b3 // sub x7, x5, x6
 03208313 // addi x6, x1, 50
+00502423 // sw x5, 8(x0)
+00802383 // lw x7, 8(x0)
 
 // Pad the rest of the memory with zeros.
 @3F
