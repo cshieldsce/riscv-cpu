@@ -8,6 +8,8 @@ module single_cycle_cpu_tb;
     logic [31:0] result_x7;
     logic [31:0] result_x9;
 
+    logic [31:0] val_mem8;
+
     SingleCycleCPU cpu_inst (
         .clk(clk),
         .rst(rst)
@@ -42,8 +44,9 @@ module single_cycle_cpu_tb;
         // Cycle 1: Fetches 'add', PC -> 4
         // Cycle 2: Fetches 'sub', 'add' completes. PC -> 8
         // Cycle 3: 'sub' completes
+        // Cycle 4: etc.
         $display("CPU running...");
-        repeat (3) @(posedge clk); // Run for 3 clock cycles
+        repeat (6) @(posedge clk);
         #1;
 
         // Our program was:
@@ -51,12 +54,17 @@ module single_cycle_cpu_tb;
         // 2. sub x5, x3, x4  (x3=10, x4=5) -> x5 should be 5
         // 3. sub x7, x5, x6  (x5=5, x6=4)  -> x7 should be 1
         // 4. addi x6, x1, 50 (x1=10, imm=50) -> x6 should be 60
+        // 5. sw x5, 8(x0)   (store x5=5 at address 8)
+        // 6. lw x7, 8(x0)   (load from address 8 into x9) -> x9 should be 5
 
         // Read the values from the register file's memory
         result_x3 = cpu_inst.reg_file_inst.register_memory[3];
         result_x5 = cpu_inst.reg_file_inst.register_memory[5];
         result_x7 = cpu_inst.reg_file_inst.register_memory[7];
         result_x9 = cpu_inst.reg_file_inst.register_memory[9];
+
+        // Read memory values
+        val_mem8 = cpu_inst.data_memory_inst.ram_memory[2];
 
         if (result_x3 != 32'd10) begin
             $error("FAIL: 'add' instruction. Expected x3=10, but got %d.", result_x3);
@@ -80,6 +88,18 @@ module single_cycle_cpu_tb;
             $error("FAIL: 'addi' instruction. Expected x9=60, but got %d", result_x9);
         end else begin
             $display("PASS: 'addi' instruction (x9 = 60) correct.");
+        end
+
+        if (val_mem8 != 32'd5) begin
+            $error("FAIL: 'sw'/'lw' instructions. Expected memory[8]=5, but got %d", val_mem8);
+        end else begin
+            $display("PASS: 'sw'/'lw' instructions (memory[8] = 5) correct.");
+        end
+
+        if (result_x7 != 32'd5) begin
+            $error("FAIL: 'lw' instruction. Expected x7=5, but got %d", result_x7);
+        end else begin
+            $display("PASS: 'lw' instruction (x7 = 5) correct.");
         end
 
         $display("Testbench Finished.");
