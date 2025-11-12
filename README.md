@@ -1,4 +1,4 @@
-## 32-bit 5-Stage Pipelined RISC-V CPU Core
+## 32-bit RISC-V CPU Core
 
 #### This repository contains the design and verification files for a 32-bit RISC-V (RV32I) CPU core, implemented from scratch in SystemVerilog.
 
@@ -28,8 +28,8 @@
 The immediate goal is to build a **complete and robust single-cycle RISC-V (RV32I) CPU core** that can execute all major instruction types.
 * [x] **R-Type:** `add`, `sub`
 * [x] **I-Type (Immediate):** Add support for `addi`. This requires an Immediate Generator and a new MUX for the ALU.
-* [ ] **I-Type (Load):** Add support for `lw` (load word). This requires adding a Data Memory and a MUX for the write-back data.
-* [ ] **S-Type (Store):** Add support for `sw` (store word), which uses the Data Memory.
+* [x] **I-Type (Load):** Add support for `lw` (load word). This requires adding a Data Memory and a MUX for the write-back data.
+* [x] **S-Type (Store):** Add support for `sw` (store word), which uses the Data Memory.
 * [ ] **B-Type (Branch):** Add support for `beq` (branch if equal). This requires new logic to check the ALU's Zero flag and update the PC.
 * [ ] **J-Type (Jump):** Add support for `jal` (jump and link).
 * [ ] **Final Verification:** Create a comprehensive test program that uses all supported instructions to verify the full design.
