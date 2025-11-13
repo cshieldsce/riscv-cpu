@@ -44,7 +44,7 @@ The goal is to build a **complete and robust single-cycle RISC-V (RV32I) CPU cor
 * [x] **I-Type (Load):** Add support for `lw` (load word). This requires adding a Data Memory and a MUX for the write-back data.
 * [x] **S-Type (Store):** Add support for `sw` (store word), which uses the Data Memory.
 * [X] **B-Type (Branch):** Add support for `beq` (branch if equal). This requires new logic to check the ALU's Zero flag and update the PC.
-* [ ] **J-Type (Jump):** Add support for `jal` (jump and link).
+* [X] **J-Type (Jump):** Add support for `jal` (jump and link).
 * [ ] **Complete Instructions:** Add all remaining instructions.
 * [ ] **Final Verification:** Create a comprehensive test program that uses all supported instructions to verify the full design.
 
