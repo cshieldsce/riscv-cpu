@@ -7,7 +7,9 @@ module ControlUnit (
     output logic ALUSrc,
     output logic MemWrite,
     output logic [1:0] MemToReg, // Select write-back data
-    output logic Branch
+    output logic Branch,
+    output logic Jump
+    
 );
 
     parameter OP_ADD = 4'b0010;
@@ -21,6 +23,7 @@ module ControlUnit (
         MemWrite = 1'b0;
         MemToReg = 2'b00;
         Branch = 1'b0;
+        Jump = 1'b0;
 
         // Since the opcode is shared we check funct3 and funct7 to determine the specific operation
         case (opcode)
@@ -48,24 +51,31 @@ module ControlUnit (
             
             // Handle I-type instructions (Load Word)
             7'b0000011: begin 
-                RegWrite = 1'b1; // 'lw' writes to a register
-                ALUSrc = 1'b1; // Use Immediate for address offset
-                MemToReg = 2'b01; // Write data from memory to RegFile
+                RegWrite = 1'b1;     // 'lw' writes to a register
+                ALUSrc = 1'b1;       // Use Immediate for address offset
+                MemToReg = 2'b01;    // Write data from memory to RegFile
                 ALUControl = OP_ADD; // ALU calculates rs1 + imm
             end
 
             // Handle S-type instructions (Store Word)
             7'b0100011: begin
-                ALUSrc = 1'b1; // Use Immediate for address offset
-                MemWrite = 1'b1; // 'sw' writes to memory
+                ALUSrc = 1'b1;       // Use Immediate for address offset
+                MemWrite = 1'b1;     // 'sw' writes to memory
                 ALUControl = OP_ADD; // ALU calculates rs1 + imm
             end
 
             // Handle B-type instructions (Branch Equal)
             7'b1100011: begin
-                Branch = 1'b1; // 'beq' instruction
-                ALUSrc = 1'b0; // Use ReadData2
+                Branch = 1'b1;       // 'beq' instruction
+                ALUSrc = 1'b0;       // Use ReadData2
                 ALUControl = OP_SUB; // ALU performs subtraction for comparison
+            end
+
+            // Handle J-type instructions (Jump and Link)
+            7'b1101111: begin
+                RegWrite = 1'b1;  // 'jal' writes to a register
+                Jump = 1'b1;      // Indicate a jump instruction
+                MemToReg = 2'b10; // PC+4 for jal
             end
 
         endcase
