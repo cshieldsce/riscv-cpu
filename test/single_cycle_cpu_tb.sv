@@ -3,9 +3,14 @@ module single_cycle_cpu_tb;
     logic clk;
     logic rst;
 
+    logic [31:0] result_x1;
+    logic [31:0] result_x2;
     logic [31:0] result_x3;
+    logic [31:0] result_x4;
     logic [31:0] result_x5;
+    logic [31:0] result_x6;
     logic [31:0] result_x7;
+    logic [31:0] result_x8;
     logic [31:0] result_x9;
 
     logic [31:0] val_mem8;
@@ -46,26 +51,38 @@ module single_cycle_cpu_tb;
         // Cycle 3: 'sub' completes
         // Cycle 4: etc.
         $display("CPU running...");
-        repeat (6) @(posedge clk);
+        repeat (11) @(posedge clk);
         #1;
 
-        // Our program was:
+        // Our program is as follows:
         // 1. add x3, x1, x2  (x1=10, x2=0) -> x3 should be 10
         // 2. sub x5, x3, x4  (x3=10, x4=5) -> x5 should be 5
-        // 3. sub x7, x5, x6  (x5=5, x6=4)  -> x7 should be 1
-        // 4. addi x6, x1, 50 (x1=10, imm=50) -> x6 should be 60
-        // 5. sw x5, 8(x0)   (store x5=5 at address 8)
-        // 6. lw x7, 8(x0)   (load from address 8 into x9) -> x9 should be 5
+        // 3. addi x6, x1, 50 (x1=10, imm=50) -> x6 should be 60
+        // 4. sw x5, 8(x0)   (store x5=5 at address 8)
+        // 5. lw x7, 8(x0)   (load from address 8 into x9) -> x9 should be 5
+        
+        // BEQ Testing
+        // 6. addi x1, x0, 5  -> x1=5
+        // 7. addi x2, x0, 5  -> x2=5
+        // 8. beq x1, x2, skip (x1==x2, so branch is TAKEN)
+        // 9. addi x3, x0, 100 (This line is SKIPPED)
+        // 10. skip: addi x4, x0, 200 -> x4=200
 
         // Read the values from the register file's memory
+        result_x1 = cpu_inst.reg_file_inst.register_memory[1];
+        result_x2 = cpu_inst.reg_file_inst.register_memory[2];
         result_x3 = cpu_inst.reg_file_inst.register_memory[3];
+        result_x4 = cpu_inst.reg_file_inst.register_memory[4];
         result_x5 = cpu_inst.reg_file_inst.register_memory[5];
+        result_x6 = cpu_inst.reg_file_inst.register_memory[6];
         result_x7 = cpu_inst.reg_file_inst.register_memory[7];
+        result_x8 = cpu_inst.reg_file_inst.register_memory[8];
         result_x9 = cpu_inst.reg_file_inst.register_memory[9];
 
         // Read memory values
         val_mem8 = cpu_inst.data_memory_inst.ram_memory[2];
 
+        // Check results (R, I, L, S)
         if (result_x3 != 32'd10) begin
             $error("FAIL: 'add' instruction. Expected x3=10, but got %d.", result_x3);
         end else begin
@@ -76,12 +93,6 @@ module single_cycle_cpu_tb;
             $error("FAIL: 'sub' instruction. Expected x5=5, but got %d.", result_x5);
         end else begin
             $display("PASS: 'sub' instruction (x5 = 5) correct.");
-        end
-
-        if (result_x7 != 32'd1) begin
-            $error("FAIL: 'sub' instruction. Expected x7=1, but got %d.", result_x7);
-        end else begin
-            $display("PASS: 'sub' instruction (x7 = 1) correct.");
         end
 
         if (result_x9 != 32'd60) begin
@@ -100,6 +111,31 @@ module single_cycle_cpu_tb;
             $error("FAIL: 'lw' instruction. Expected x7=5, but got %d", result_x7);
         end else begin
             $display("PASS: 'lw' instruction (x7 = 5) correct.");
+        end
+
+        // Check BEQ results
+        if (result_x1 != 32'd5) begin
+            $error("FAIL: 'addi' instruction. Expected x1=5, but got %d.", result_x1);
+        end else begin
+            $display("PASS: 'addi' instruction (x1 = 5) correct.");
+        end
+
+        if (result_x2 != 32'd5) begin
+            $error("FAIL: 'addi' instruction. Expected x2=5, but got %d.", result_x2);
+        end else begin
+            $display("PASS: 'addi' instruction (x2 = 5) correct.");
+        end
+
+        if (result_x3 != 32'd10) begin
+            $error("FAIL: 'beq' instruction (skipped). Expected x3=10, but got %d.", result_x3);
+        end else begin
+            $display("PASS: 'beq' instruction (skipped, x3 = 10) correct.");
+        end
+
+        if (result_x4 != 32'd200) begin
+            $error("FAIL: 'addi' instruction. Expected x4=200, but got %d.", result_x4);
+        end else begin
+            $display("PASS: 'addi' instruction (x4 = 200) correct.");
         end
 
         $display("Testbench Finished.");
