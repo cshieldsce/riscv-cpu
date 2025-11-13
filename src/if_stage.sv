@@ -1,14 +1,16 @@
 module IF_Stage (
     input logic clk, rst,
+    input logic [31:0] next_pc_in,
     output logic [31:0] instruction_out,
-    output logic [31:0] pc_out
+    output logic [31:0] pc_out,
+    output logic [31:0] pc_plus_4_out
 );
 
     logic [31:0] next_pc;
     PC pc_inst (
         .clk(clk),
         .rst(rst),
-        .pc_in(next_pc),
+        .pc_in(next_pc_in),
         .pc_out(pc_out)
     );
 
@@ -18,6 +20,6 @@ module IF_Stage (
     );
 
     // Add PC + 4
-    assign next_pc = pc_out + 32'd4;
+    assign pc_plus_4_out = pc_out + 32'd4;
 
 endmodule
