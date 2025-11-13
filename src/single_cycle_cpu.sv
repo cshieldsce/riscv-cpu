@@ -33,6 +33,7 @@ module SingleCycleCPU (
     logic MemWrite;
     logic [1:0] MemToReg;
     logic Branch;
+    logic Jump;
 
     // 32-bit 'datapath' wires
     logic [31:0] ReadData1;
@@ -46,7 +47,8 @@ module SingleCycleCPU (
     // PC and Branch logic
     logic [31:0] pc_plus_4;
     logic [31:0] branch_target;
-    logic [31:0] pc_next;
+    logic [31:0] jump_target;
+    logic [31:0] pc_next;   // keep this name consistent with IF_Stage
     logic PCSrc;
 
 
@@ -79,7 +81,8 @@ module SingleCycleCPU (
         .ALUSrc(ALUSrc),       
         .MemWrite(MemWrite),
         .MemToReg(MemToReg),
-        .Branch(Branch)
+        .Branch(Branch),
+        .Jump(Jump)
     );
 
     // Register file
@@ -119,23 +122,31 @@ module SingleCycleCPU (
         .ReadData(MemReadData)  // Data read from memory
     );
 
-    // Write-back MUX
+    // --- Write-back MUX ---
     // Selects the data to be written back into the Register File
     // MemToReg = 00: Select ALU Result (R-type, addi)
     // MemToReg = 01: Select Data from Memory (lw)
     // MemToReg = 10: (Future use: PC+4 for jal)
-    assign WriteData_Mux_Out = (MemToReg == 2'b01) ? MemReadData : ALUResult;
+    always_comb begin
+        case (MemToReg)
+            2'b00: WriteData_Mux_Out = ALUResult;      // ALU Result
+            2'b01: WriteData_Mux_Out = MemReadData;    // Data Memory output
+            2'b10: WriteData_Mux_Out = pc_plus_4;      // PC + 4 (for jal)
+            default: WriteData_Mux_Out = 32'd0;
+        endcase
+    end
 
-    // Branch Logic
-    // Determines the next PC based on branch condition
+    // --- Branch/Jump Logic ---
+    // Determines the next PC based on branch/jump condition
     assign branch_target = pc_out + ImmGenOut;
+    assign jump_target   = pc_out + ImmGenOut;
 
     // We take the branch (PCSrc) IF the 'Branch' signal is active
     // AND the ALU's 'Zero' flag is high (meaning rs1 == rs2).
     assign PCSrc = Branch & ALUZero;
 
-    // Selects the branch target address if we take the branch,
-    // otherwise, just select PC+4.
-    assign pc_next = (PCSrc == 1) ? branch_target : pc_plus_4;
+    // Select next PC
+    assign pc_next = (Jump == 1)  ? jump_target :
+                     (PCSrc == 1) ? branch_target : pc_plus_4;
 
 endmodule
