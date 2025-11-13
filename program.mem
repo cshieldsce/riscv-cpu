@@ -19,6 +19,13 @@
 06400193 // addi x3, x0, 100 (THIS INSTRUCTION SHOULD BE SKIPPED)
 0C800213 // addi x4, x0, 200 (THIS INSTRUCTION SHOULD EXECUTE)
 
+// JAL Testing
+00A00093 // addi x1, x0, 10
+008001EF // jal x3, 8  (Jump to PC+8, save PC+4 in x3)
+06400213 // addi x4, x0, 100 (THIS INSTRUCTION SHOULD BE SKIPPED)
+01400113 // addi x2, x0, 20 (this is our jump target)
+06300293 // addi x5, x0, 99
+
 // Pad the rest of the memory with zeros.
 @3F
 00000000
