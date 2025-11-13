@@ -29,8 +29,10 @@ module SingleCycleCPU (
     logic RegWrite;
     logic [3:0] ALUControl;
     logic ALUSrc;
+    logic ALUZero;
     logic MemWrite;
     logic [1:0] MemToReg;
+    logic Branch;
 
     // 32-bit 'datapath' wires
     logic [31:0] ReadData1;
@@ -41,18 +43,28 @@ module SingleCycleCPU (
     logic [31:0] MemReadData;
     logic [31:0] WriteData_Mux_Out;
 
+    // PC and Branch logic
+    logic [31:0] pc_plus_4;
+    logic [31:0] branch_target;
+    logic [31:0] pc_next;
+    logic PCSrc;
+
+
     // Instruction Fetch Stage
     // Fetches the 'instruction' at the current 'pc_out'
     IF_Stage if_stage_inst (
         .clk(clk),
         .rst(rst),
+        .next_pc_in(pc_next),
         .instruction_out(instruction), // Output the fetched instruction
-        .pc_out(pc_out)                // Output the current PC
+        .pc_out(pc_out),                // Output the current PC
+        .pc_plus_4_out(pc_plus_4)
     );
 
     // Immediate Generator
     ImmGen imm_gen_inst (
         .instruction(instruction),
+        .opcode(opcode),
         .imm_out(ImmGenOut)
     );
 
@@ -66,7 +78,8 @@ module SingleCycleCPU (
         .ALUControl(ALUControl), 
         .ALUSrc(ALUSrc),       
         .MemWrite(MemWrite),
-        .MemToReg(MemToReg)
+        .MemToReg(MemToReg),
+        .Branch(Branch)
     );
 
     // Register file
@@ -94,7 +107,7 @@ module SingleCycleCPU (
         .B(ALU_B_Data),          // Input data from RegFile (rs2)
         .ALUControl(ALUControl),
         .Result(ALUResult),
-        .Zero()                  // Unused for now
+        .Zero(ALUZero)              
     );
 
     // Data Memory
@@ -112,5 +125,17 @@ module SingleCycleCPU (
     // MemToReg = 01: Select Data from Memory (lw)
     // MemToReg = 10: (Future use: PC+4 for jal)
     assign WriteData_Mux_Out = (MemToReg == 2'b01) ? MemReadData : ALUResult;
+
+    // Branch Logic
+    // Determines the next PC based on branch condition
+    assign branch_target = pc_out + ImmGenOut;
+
+    // We take the branch (PCSrc) IF the 'Branch' signal is active
+    // AND the ALU's 'Zero' flag is high (meaning rs1 == rs2).
+    assign PCSrc = Branch & ALUZero;
+
+    // Selects the branch target address if we take the branch,
+    // otherwise, just select PC+4.
+    assign pc_next = (PCSrc == 1) ? branch_target : pc_plus_4;
 
 endmodule
