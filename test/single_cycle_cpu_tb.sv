@@ -45,44 +45,22 @@ module single_cycle_cpu_tb;
         rst = 0;
         #1;
 
-        // Let the CPU run
-        // Cycle 1: Fetches 'add', PC -> 4
-        // Cycle 2: Fetches 'sub', 'add' completes. PC -> 8
-        // Cycle 3: 'sub' completes
-        // Cycle 4: etc.
+        // --- TEST 1: R, I, Load, Store ---
         $display("CPU running...");
-        repeat (11) @(posedge clk);
+        // 5 instructions: add, sub, addi, sw, lw
+        repeat (5) @(posedge clk);
         #1;
 
-        // Our program is as follows:
-        // 1. add x3, x1, x2  (x1=10, x2=0) -> x3 should be 10
-        // 2. sub x5, x3, x4  (x3=10, x4=5) -> x5 should be 5
-        // 3. addi x6, x1, 50 (x1=10, imm=50) -> x6 should be 60
-        // 4. sw x5, 8(x0)   (store x5=5 at address 8)
-        // 5. lw x7, 8(x0)   (load from address 8 into x9) -> x9 should be 5
-        
-        // BEQ Testing
-        // 6. addi x1, x0, 5  -> x1=5
-        // 7. addi x2, x0, 5  -> x2=5
-        // 8. beq x1, x2, skip (x1==x2, so branch is TAKEN)
-        // 9. addi x3, x0, 100 (This line is SKIPPED)
-        // 10. skip: addi x4, x0, 200 -> x4=200
-
         // Read the values from the register file's memory
-        result_x1 = cpu_inst.reg_file_inst.register_memory[1];
-        result_x2 = cpu_inst.reg_file_inst.register_memory[2];
         result_x3 = cpu_inst.reg_file_inst.register_memory[3];
-        result_x4 = cpu_inst.reg_file_inst.register_memory[4];
         result_x5 = cpu_inst.reg_file_inst.register_memory[5];
         result_x6 = cpu_inst.reg_file_inst.register_memory[6];
         result_x7 = cpu_inst.reg_file_inst.register_memory[7];
-        result_x8 = cpu_inst.reg_file_inst.register_memory[8];
         result_x9 = cpu_inst.reg_file_inst.register_memory[9];
 
         // Read memory values
         val_mem8 = cpu_inst.data_memory_inst.ram_memory[2];
 
-        // Check results (R, I, L, S)
         if (result_x3 != 32'd10) begin
             $error("FAIL: 'add' instruction. Expected x3=10, but got %d.", result_x3);
         end else begin
@@ -113,7 +91,17 @@ module single_cycle_cpu_tb;
             $display("PASS: 'lw' instruction (x7 = 5) correct.");
         end
 
-        // Check BEQ results
+        // --- TEST 2: Branch and Jump ---
+        // Next 4 instructions: addi x1, addi x2, beq (taken), addi x4 (at target)
+        repeat (4) @(posedge clk);
+        #1;
+
+        // Read the values from the register file's memory
+        result_x1 = cpu_inst.reg_file_inst.register_memory[1];
+        result_x2 = cpu_inst.reg_file_inst.register_memory[2];
+        result_x3 = cpu_inst.reg_file_inst.register_memory[3];
+        result_x4 = cpu_inst.reg_file_inst.register_memory[4];
+
         if (result_x1 != 32'd5) begin
             $error("FAIL: 'addi' instruction. Expected x1=5, but got %d.", result_x1);
         end else begin
@@ -136,6 +124,42 @@ module single_cycle_cpu_tb;
             $error("FAIL: 'addi' instruction. Expected x4=200, but got %d.", result_x4);
         end else begin
             $display("PASS: 'addi' instruction (x4 = 200) correct.");
+        end
+
+        // --- TEST 3: JAL Instruction ---
+        // Next 4 instructions: addi x1, jal, addi x2 (target), addi x5
+        repeat (4) @(posedge clk);
+        #1;
+
+        // Read the values from the register file's memory
+        result_x1 = cpu_inst.reg_file_inst.register_memory[1];
+        result_x2 = cpu_inst.reg_file_inst.register_memory[2];
+        result_x3 = cpu_inst.reg_file_inst.register_memory[3];
+        result_x4 = cpu_inst.reg_file_inst.register_memory[4];
+        result_x5 = cpu_inst.reg_file_inst.register_memory[5];
+
+        if (result_x1 != 32'd10) begin
+            $error("FAIL: 'addi' instruction before JAL. Expected x1=10, but got %d.", result_x1);
+        end else begin
+            $display("PASS: 'addi' instruction before JAL (x1 = 10) correct.");
+        end
+
+        if (result_x3 != 32'd48) begin
+            $error("FAIL: 'jal' instruction. Expected x3=48, but got %d.", result_x3);
+        end else begin
+            $display("PASS: 'jal' instruction (x3 = 48) correct.");
+        end
+
+        if (result_x2 != 32'd20) begin
+            $error("FAIL: 'addi' instruction at jump target. Expected x2=20, but got %d.", result_x2);
+        end else begin
+            $display("PASS: 'addi' instruction at jump target (x2 = 20) correct.");
+        end
+
+        if (result_x5 != 32'd99) begin
+            $error("FAIL: 'addi' instruction after jump target. Expected x5=99, but got %d.", result_x5);
+        end else begin
+            $display("PASS: 'addi' instruction after jump target (x5 = 99) correct.");
         end
 
         $display("Testbench Finished.");
