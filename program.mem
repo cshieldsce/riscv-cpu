@@ -8,10 +8,16 @@
 
 002081b3 // add x3, x1, x2
 0041f2b3 // sub x5, x3, x4
-406283b3 // sub x7, x5, x6
 03208313 // addi x6, x1, 50
 00502423 // sw x5, 8(x0)
 00802383 // lw x7, 8(x0)
+
+// BEQ Testing
+00500093 // addi x1, x0, 5
+00500113 // addi x2, x0, 5
+00208463 // beq x1, x2, 8 (Branch to skip)
+06400193 // addi x3, x0, 100 (THIS INSTRUCTION SHOULD BE SKIPPED)
+0C800213 // addi x4, x0, 200 (THIS INSTRUCTION SHOULD EXECUTE)
 
 // Pad the rest of the memory with zeros.
 @3F
