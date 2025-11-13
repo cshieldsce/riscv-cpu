@@ -1,12 +1,43 @@
 module ImmGen (
     input  logic [31:0] instruction,
+    input  logic [6:0]  opcode,
     output logic [31:0] imm_out
 );
 
-    // For I-type, the immediate is in bits [31:20].
-    // We sign-extend it by replicating the sign bit (instruction[31])
-    // 20 times to fill the upper 20 bits.
-    // {20{bit}} is the SystemVerilog "replication" operator.
-    assign imm_out = { {20{instruction[31]}}, instruction[31:20] };
+    logic [31:0] imm_I; // For I-type (addi, lw)
+    logic [31:0] imm_S; // For S-type (sw)
+    logic [31:0] imm_B; // For B-type (beq)
+
+    // I-type Immediate 
+    // Immediate is bits [31:20]. Sign-extend from bit [31].
+    assign imm_I = { {20{instruction[31]}}, instruction[31:20] };
+
+    // S-Type Immediate
+    // Immediate is split: [31:25] and [11:7]
+    assign imm_S = { {20{instruction[31]}}, instruction[31:25], instruction[11:7] };
+
+    // B-Type Immediate
+    // Immediate is split: [31], [7], [30:25], [11:8], with a 0 as LSB
+    assign imm_B = {{19{instruction[31]}}, 
+                    instruction[31], 
+                    instruction[7], 
+                    instruction[30:25], 
+                    instruction[11:8], 1'b0};
+
+    // Output mux based on opcode
+    always_comb begin
+        case (opcode)
+            7'b0010011: // I-type (addi)
+                imm_out = imm_I;
+            7'b0000011: // I-type (lw)
+                imm_out = imm_I;
+            7'b0100011: // S-type (sw)
+                imm_out = imm_S;
+            7'b1100011: // B-type (beq)
+                imm_out = imm_B;
+            default:
+                imm_out = 32'd0; // Default case
+        endcase
+    end
 
 endmodule
