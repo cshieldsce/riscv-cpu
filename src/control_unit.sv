@@ -8,7 +8,8 @@ module ControlUnit (
     output logic MemWrite,
     output logic [1:0] MemToReg, // Select write-back data
     output logic Branch,
-    output logic Jump
+    output logic Jump,
+    output logic Jalr
     
 );
 
@@ -24,6 +25,7 @@ module ControlUnit (
         MemToReg = 2'b00;
         Branch = 1'b0;
         Jump = 1'b0;
+        Jalr = 1'b0;
 
         // Since the opcode is shared we check funct3 and funct7 to determine the specific operation
         case (opcode)
@@ -76,6 +78,15 @@ module ControlUnit (
                 RegWrite = 1'b1;  // 'jal' writes to a register
                 Jump = 1'b1;      // Indicate a jump instruction
                 MemToReg = 2'b10; // PC+4 for jal
+            end
+
+            // Handle J-type instructions (Jump and Link Register)
+            7'b1100111: begin
+                RegWrite = 1'b1;  // 'jalr' writes to a register
+                Jalr = 1'b1;      // Indicate a jump instruction
+                ALUSrc = 1'b1;    // Use Immediate for address calculation
+                MemToReg = 2'b10; // PC+4 for jalr
+                ALUControl = OP_ADD; // ALU calculates rs1 + imm
             end
 
         endcase
