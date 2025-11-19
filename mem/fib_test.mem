@@ -1,0 +1,22 @@
+// RISC-V RV32I Machine Code: Fibonacci(10)
+// Calculates the 10th Fibonacci number (55) and stores it in Mem[0]
+
+00a00093 // (0x00) addi x1, x0, 10  (n = 10)
+00100113 // (0x04) addi x2, x0, 1   (current = 1)
+00000193 // (0x08) addi x3, x0, 0   (previous = 0)
+00100213 // (0x0C) addi x4, x0, 0   (i = 1)
+
+// --- LOOP ---
+00120c63 // (0x10) beq x4, x1, 20   (if i == n, jump to done at 0x28)
+003102b3 // (0x14) add x5, x2, x3   (temp = current + previous)
+002001b3 // (0x18) add x3, x0, x2   (previous = current)
+00500133 // (0x1C) add x2, x0, x5   (current = temp)
+00120213 // (0x20) addi x4, x4, 1   (i++)
+fedff06f // (0x24) jal x0, -20      (jump back to loop start at 0x10)
+
+// --- DONE ---
+00202023 // 11. (0x28) sw x2, 0(x0)    (Store result to Memory[0])
+
+// Pad to end
+@3F
+00000000
