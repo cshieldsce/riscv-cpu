@@ -6,25 +6,36 @@
 // Simulate and look in 'Machine Code' column
 //
 
+
+// --- R, I, Load, Store ---
 002081b3 // add x3, x1, x2
 0041f2b3 // sub x5, x3, x4
 03208313 // addi x6, x1, 50
 00502423 // sw x5, 8(x0)
 00802383 // lw x7, 8(x0)
 
-// BEQ Testing
+// --- Branching ---
 00500093 // addi x1, x0, 5
 00500113 // addi x2, x0, 5
-00208463 // beq x1, x2, 8 (Branch to skip)
+00208463 // beq x1, x2, 8    (Branch to skip)
 06400193 // addi x3, x0, 100 (THIS INSTRUCTION SHOULD BE SKIPPED)
 0C800213 // addi x4, x0, 200 (THIS INSTRUCTION SHOULD EXECUTE)
 
-// JAL Testing
+// --- Jump (jal) ---
 00A00093 // addi x1, x0, 10
-008001EF // jal x3, 8  (Jump to PC+8, save PC+4 in x3)
+008001EF // jal x3, 8        (Jump to PC+8, save PC+4 in x3)
 06400213 // addi x4, x0, 100 (THIS INSTRUCTION SHOULD BE SKIPPED)
-01400113 // addi x2, x0, 20 (this is our jump target)
+01400113 // addi x2, x0, 20  (this is our jump target)
 06300293 // addi x5, x0, 99
+
+// --- Function call (jalr) ---
+00500513 // (0x3C) - addi x10, x0, 5    (Argument: x10 = 5)
+00c000ef // (0x40) - jal x1, 12         (Jump to 0x50, Link x1=0x48)
+00100593 // (0x44) - addi x11, x0, 1    (Set x11 = 1 to signal that we returned)
+00c0006f // (0x48) - jal x0, 12         (Jump to 0x58 to skip the function body)
+00a50513 // (0x4C) - addi x10, x10, 10  (x10 = 15 main function logic)
+00008067 // (0x50) - jalr x0, x1, 0     (Jump back to x1)
+00100613 // (0x54) - addi x12, x0, 1    (x12 = 1 final call)
 
 // Pad the rest of the memory with zeros.
 @3F
