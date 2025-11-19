@@ -4,104 +4,135 @@ This repository contains the design and verification files for a 32-bit RISC-V (
 
 ## Architecture Overview
 
-The CPU follows a classic RISC single-cycle architecture where each instruction completes in one clock cycle. The datapath flows from left to right: instructions are fetched from memory, decoded to extract operands and control signals, executed in the ALU, optionally access data memory, and finally write results back to the register file.
+The CPU implements a classic single-cycle Harvard architecture. It features a dedicated control unit handling 10 different control signals and a datapath capable of executing Arithmetic, Logic, Memory, Branch, and Jump operations in a single clock cycle.
 
 ```mermaid
 graph LR
-    PC[PC] -->|addr| IMEM[Instruction<br/>Memory]
-    IMEM -->|inst| DECODE[Decode &<br/>Control]
+    %% --- Styling Definitions ---
+    classDef stage fill:none,stroke:#555,stroke-width:1px,stroke-dasharray: 5 5
     
-    DECODE -->|rs1,rs2| RF[Register<br/>File]
-    DECODE -->|imm| ALU
-    
-    RF -->|data1| ALU[ALU]
-    RF -->|data2| ALU
-    
-    ALU -->|addr| DMEM[Data<br/>Memory]
-    ALU -->|result| MUX{WB Mux}
-    DMEM -->|data| MUX
-    
-    MUX -->|wr_data| RF
-    
-    ALU -.branch.-> PC
-    PC -.+4.-> PC
-    
-    style PC fill:#3b82f6,stroke:#1e40af,stroke-width:2px,color:#fff
-    style IMEM fill:#3b82f6,stroke:#1e40af,stroke-width:2px,color:#fff
-    style DECODE fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
-    style RF fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff
-    style ALU fill:#ec4899,stroke:#be185d,stroke-width:2px,color:#fff
-    style DMEM fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
-    style MUX fill:#6366f1,stroke:#4338ca,stroke-width:2px,color:#fff
-```
+    %% --- STAGE: Instruction Fetch ---
+    subgraph IF [Fetch]
+        direction TB
+        PCMUX{PC Mux}
+        PC[PC]
+        IMEM[Instruction<br/>Memory]
+        PC_ADD[PC + 4]
+    end
 
-## Features
+    %% --- STAGE: Decode ---
+    subgraph ID [Decode]
+        direction TB
+        CTRL[Control<br/>Unit]
+        RF[Register<br/>File]
+        IMM[Imm<br/>Gen]
+    end
 
-The goal is to build a **complete and robust single-cycle RISC-V (RV32I) CPU core** that can execute all major instruction types.
+    %% --- STAGE: Execute ---
+    subgraph EX [Execute]
+        direction TB
+        ALU_SRC{ALU<br/>Src}
+        ALU[ALU]
+        BR_ADD[Branch<br/>Adder]
+    end
 
-* [x] **R-Type:** `add`, `sub`, `and`, `or`, `xor`, `sll`, `srl`, `sra`, `slt`, `sltu`.
-* [x] **I-Type (Immediate):** Add support for `addi`, `xori`, `andi`, `ori`, `slli`, `srli`, `srai`, `slti`, `sltiu`. This requires an Immediate Generator and a new MUX for the ALU.
-* [x] **I-Type (Load):** Add support for `lw` (load word). This requires adding a Data Memory and a MUX for the write-back data.
-* [x] **S-Type (Store):** Add support for `sw` (store word), which uses the Data Memory.
-* [X] **B-Type (Branch):** Add support for `beq` (branch if equal). This requires new logic to check the ALU's Zero flag and update the PC.
-* [X] **J-Type (Jump):** Add support for `jal` (jump and link), `jalr` (jump and register).
-* [X] **Complete Instructions:** Add all remaining instructions.
-* [ ] **Final Verification:** Create a comprehensive test program that uses all supported instructions to verify the full design.
+    %% --- STAGE: Memory ---
+    subgraph MEM [Memory]
+        DMEM[Data<br/>Memory]
+    end
 
-## Detailed Architecture
+    %% --- STAGE: Write Back ---
+    subgraph WB [Write Back]
+        WBMUX{Write<br/>Back}
+    end
 
-The complete datapath illustrates all major components and their interconnections. Instructions flow through the Instruction Memory to multiple decode units simultaneously: the Control Unit generates control signals, the Immediate Generator extracts immediate values, and the Register File reads source operands. The ALU Src mux selects between register data and immediates for the second ALU operand. After execution, results either access Data Memory for load/store operations or bypass directly to the Write Back mux, which selects the final value to write back to the register file.
+    %% ==========================================
+    %% DATA PATH CONNECTIONS (Thick Solid Lines)
+    %% ==========================================
 
-```mermaid
-graph LR
-    PCMUX{PC<br/>Mux} --> PC[Program<br/>Counter]
-    PC --> IMEM[Instruction<br/>Memory]
-    
-    IMEM --> CTRL[Control<br/>Unit]
-    IMEM --> IMMGEN[Immediate<br/>Generator]
-    IMEM --> REGFILE[Register<br/>File]
-    
-    CTRL --> ALUSRC{ALU<br/>Src}
-    CTRL --> WBMUX{WB<br/>Mux}
-    
-    REGFILE --> ALU[ALU]
-    REGFILE --> ALUSRC
-    IMMGEN --> ALUSRC
-    ALUSRC --> ALU
-    
-    ALU --> DMEM[Data<br/>Memory]
-    REGFILE --> DMEM
-    CTRL --> DMEM
-    
-    ALU --> WBMUX
-    DMEM --> WBMUX
-    WBMUX --> REGFILE
-    
-    PC --> PCMUX
+    %% Fetch Path
+    PCMUX ==> PC
+    PC ==> IMEM
+    PC ==> PC_ADD
+    PC ==> BR_ADD
+
+    %% Decode Path (Abstracting bit-slicing for clarity)
+    IMEM ==> RF
+    IMEM ==> IMM
+    IMEM ==> CTRL
+
+    %% Execute Path
+    RF ==> ALU
+    RF ==> ALU_SRC
+    IMM ==> ALU_SRC
+    IMM ==> BR_ADD
+    ALU_SRC ==> ALU
+
+    %% Memory Path
+    RF ==> DMEM
+    ALU ==> DMEM
+
+    %% Writeback Path
+    ALU ==> WBMUX
+    DMEM ==> WBMUX
+    PC_ADD ==> WBMUX
+    WBMUX ==> RF
+
+    %% PC Feedback Loops
+    PC_ADD --> PCMUX
+    BR_ADD --> PCMUX
     ALU --> PCMUX
+
+    %% ==========================================
+    %% CONTROL SIGNALS (Thin Dotted Lines)
+    %% ==========================================
+    
+    CTRL -.-> RF
+    CTRL -.-> ALU_SRC
+    CTRL -.-> ALU
+    CTRL -.-> DMEM
+    CTRL -.-> WBMUX
+    CTRL -.-> PCMUX
+
+    %% ==========================================
+    %% COLOR STYLING
+    %% ==========================================
     
     style PCMUX fill:#06b6d4,stroke:#0891b2,stroke-width:2px,color:#fff
     style PC fill:#3b82f6,stroke:#1e40af,stroke-width:2px,color:#fff
     style IMEM fill:#3b82f6,stroke:#1e40af,stroke-width:2px,color:#fff
+    style PC_ADD fill:#3b82f6,stroke:#1e40af,stroke-width:2px,color:#fff
+    
     style CTRL fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
-    style IMMGEN fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
-    style REGFILE fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff
-    style ALUSRC fill:#6366f1,stroke:#4338ca,stroke-width:2px,color:#fff
+    style IMM fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
+    
+    style RF fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff
+    
     style ALU fill:#ec4899,stroke:#be185d,stroke-width:2px,color:#fff
+    style BR_ADD fill:#ec4899,stroke:#be185d,stroke-width:2px,color:#fff
+    style ALU_SRC fill:#6366f1,stroke:#4338ca,stroke-width:2px,color:#fff
+    
     style DMEM fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
+    
     style WBMUX fill:#6366f1,stroke:#4338ca,stroke-width:2px,color:#fff
+
+    %% Apply Invisible Stage Styling
+    class IF,ID,EX,MEM,WB stage
 ```
 
-* **Arithmetic Logic Unit (ALU):** A 32-bit combinational ALU capable of performing ADD, SUB, AND, and OR operations.
-* **Register File:** A 32x32 synchronous-write, asynchronous-read register file, correctly handling the zero-register (`x0`).
-* **Instruction Fetch Stage:** A complete `IF_Stage` module with a Program Counter (`PC`) and Instruction Memory (`InstructionMemory`) that correctly fetches instructions from a program file.
-* **Control Unit:** A combinational `ControlUnit` that decodes instruction `opcodes` and generates the correct control signals.
-* **Single-Cycle CPU Core:** A top-level `SingleCycleCPU` module that integrates all components to fetch and execute a multi-instruction program.
-* **Verification:** The core has been verified with a top-level, self-checking testbench (`single_cycle_cpu_tb.sv`) that initializes registers, runs a program from memory, and verifies the register values.
+## Supported Instructions (RV32I)
+
+The core passes comprehensive verification tests for the following instruction types:
+
+- **Arithmetic:** `add`, `sub`, `addi`, `slt`, `sltu`, `slti`, `sltiu`
+- **Logic:** `and`, `or`, `xor`, `andi`, `ori`, `xori`
+- **Shifts:** `sll`, `srl`, `sra`, `slli`, `srli`, `srai`
+- **Memory:** `lw` (Load Word), `sw` (Store Word)
+- **Control Flow:** `beq` (Branch Equal), `jal` (Jump & Link), `jalr` (Jump Register)
 
 ## Module Organization
 
-The design is organized hierarchically with `SingleCycleCPU` as the top-level module that instantiates and connects all datapath components. The `IF_Stage` encapsulates instruction fetch logic (PC and Instruction Memory), while other components (Control Unit, Register File, ALU, Immediate Generator) are instantiated directly at the top level.
+The project is structured with the top-level `SingleCycleCPU` instantiating specific pipeline stages and logic units.
 
 ```mermaid
 graph TD
@@ -112,6 +143,7 @@ graph TD
     CPU --> RF[RegFile]
     CPU --> ALU[ALU]
     CPU --> IG[ImmGen]
+    CPU --> DM[DataMemory]
     
     IFS --> PC[PC]
     IFS --> IM[InstructionMemory]
@@ -122,8 +154,7 @@ graph TD
     style RF fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff
     style ALU fill:#ec4899,stroke:#be185d,stroke-width:2px,color:#fff
     style IG fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
-    style PC fill:#60a5fa,stroke:#2563eb,stroke-width:2px,color:#fff
-    style IM fill:#60a5fa,stroke:#2563eb,stroke-width:2px,color:#fff
+    style DM fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
 ```
 
 ## Instruction Execution
@@ -156,22 +187,15 @@ graph LR
 
 ## Tools & Requirements
 
-* **Simulator:** [Icarus Verilog](https://steveicarus.github.io/iverilog/) (`iverilog`) is used for compiling and simulating the design.
-* **Language:** SystemVerilog (IEEE 1800-2012)
-
-## Future Improvements (5-Stage Pipeline)
-
-After the single-cycle core is complete and fully verified, the project will be extended to a 5-stage pipelined processor to improve performance.
-
-* [ ] **Convert to 5-Stage Pipeline:** Add pipeline registers to separate the design into IF, ID, EX, MEM, and WB stages.
-* [ ] **Hazard & Forwarding Unit:** Implement logic to handle data and control hazards.
+- **Simulator:** [Icarus Verilog](https://steveicarus.github.io/iverilog/) (`iverilog`) is used for compiling and simulating the design.
+- **Language:** SystemVerilog (IEEE 1800-2012)
 
 ## Running the project
 
-To compile all the source files and the datapath testbench:
+The project includes a full regression testbench that verifies R-Type, I-Type, Memory, and Control Flow instructions in a single simulation run.
 
 ```bash
-iverilog -g2012 -o cpu.out src/pc.sv src/instruction_memory.sv src/if_stage.sv src/alu.sv src/reg_file.sv src/control_unit.sv src/single_cycle_cpu.sv src/imm_gen.sv test/single_cycle_cpu_tb.sv
+iverilog -g2012 -o cpu.out src/*.sv test/single_cycle_cpu_tb.sv
 ```
 
 To run the simulation:
@@ -179,3 +203,19 @@ To run the simulation:
 ```bash
 vvp sim.out
 ```
+
+You can also compile a run the Fibonacci Sequence program by changing the memory file in `instruction_memory.sv` on `line 11`. After you change the memory file from `program.mem` to `fib_test.mem` you can compile `test/fib_test_tb.sv` and run it.
+
+## Roadmap
+
+Phase 1: Single-Cycle Core (Completed)
+
+- [x] Implemented full datapath for R, I, S, B, and J type instructions.
+- [x] Developed modular Control Unit with ALU decoding.
+- [x] Verified functionality with Fibonacci and regression testbenches.
+
+Phase 2: 5-Stage Pipelining (In Progress)
+
+- [ ] **Pipeline Registers:** Insert registers between IF, ID, EX, MEM, and WB stages.
+- [ ] **Hazard Unit:** Detect data hazards and insert bubbles (stalls).
+- [ ] **Forwarding Unit:** Implement operand forwarding to resolve RAW hazards without stalling.
