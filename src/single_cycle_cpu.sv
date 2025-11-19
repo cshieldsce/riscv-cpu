@@ -34,6 +34,7 @@ module SingleCycleCPU (
     logic [1:0] MemToReg;
     logic Branch;
     logic Jump;
+    logic Jalr;
 
     // 32-bit 'datapath' wires
     logic [31:0] ReadData1;
@@ -82,7 +83,8 @@ module SingleCycleCPU (
         .MemWrite(MemWrite),
         .MemToReg(MemToReg),
         .Branch(Branch),
-        .Jump(Jump)
+        .Jump(Jump),
+        .Jalr(Jalr)
     );
 
     // Register file
@@ -145,8 +147,17 @@ module SingleCycleCPU (
     // AND the ALU's 'Zero' flag is high (meaning rs1 == rs2).
     assign PCSrc = Branch & ALUZero;
 
+    // Priority MUX for Next PC:
+    // 1. JALR (Take address from ALU)
+    // 2. JAL  (Take address from Jump Adder)
+    // 3. Branch Taken (Take address from Branch Adder)
+    // 4. Next Sequential (PC+4)
+    
+    // Note: For JALR, the LSB must be masked to 0 (specification requirement),
+
     // Select next PC
-    assign pc_next = (Jump == 1)  ? jump_target :
+    assign pc_next = (Jalr == 1) ? ALUResult : 
+                     (Jump == 1)  ? jump_target :
                      (PCSrc == 1) ? branch_target : pc_plus_4;
 
 endmodule
