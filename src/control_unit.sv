@@ -13,8 +13,17 @@ module ControlUnit (
     
 );
 
+    // Define ALU operations
+    parameter OP_AND = 4'b0000;
+    parameter OP_OR  = 4'b0001;
     parameter OP_ADD = 4'b0010;
     parameter OP_SUB = 4'b0110;
+    parameter OP_SLT  = 4'b0111; // Set Less Than (Signed)
+    parameter OP_SLTU = 4'b1000; // Set Less Than (Unsigned)
+    parameter OP_XOR  = 4'b1001;
+    parameter OP_SLL  = 4'b1010; // Shift Left Logical
+    parameter OP_SRL  = 4'b1011; // Shift Right Logical
+    parameter OP_SRA  = 4'b1100; // Shift Right Arithmetic
 
     always_comb begin
         // Default control signals
@@ -36,9 +45,15 @@ module ControlUnit (
                 ALUSrc = 1'b0;    // Use ReadData2
                 MemToReg = 2'b00; // Write ALUResult to RegFile
 
-                case ({funct7, funct3})
-                    {7'b0000000, 3'b000}: ALUControl = OP_ADD; // add
-                    {7'b0100000, 3'b000}: ALUControl = OP_SUB; // sub
+                case (funct3)
+                    3'b000: ALUControl = (funct7 == 7'b0000000) ? OP_ADD : OP_SUB;  // add or sub
+                    3'b001: ALUControl = OP_SLL;                                    // shift left logical
+                    3'b010: ALUControl = OP_SLT;                                    // set less than signed
+                    3'b011: ALUControl = OP_SLTU;                                   // set less than unsigned
+                    3'b100: ALUControl = OP_XOR;                                    // xor
+                    3'b101: ALUControl = (funct7 == 7'b0000000) ? OP_SRL : OP_SRA;  // srl or sra
+                    3'b110: ALUControl = OP_OR;                                     // or
+                    3'b111: ALUControl = OP_AND;                                    // and
                     default: ALUControl = 4'b0000;
                 endcase
             end
@@ -49,6 +64,18 @@ module ControlUnit (
                 ALUSrc = 1'b1;
                 MemToReg = 2'b00;
                 ALUControl = OP_ADD;
+
+                case (funct3)
+                    3'b000: ALUControl = OP_ADD; // addi
+                    3'b010: ALUControl = OP_SLT; // slti
+                    3'b011: ALUControl = OP_SLTU; // sltiu
+                    3'b100: ALUControl = OP_XOR; // xori
+                    3'b110: ALUControl = OP_OR;  // ori
+                    3'b111: ALUControl = OP_AND; // andi
+                    3'b001: ALUControl = OP_SLL; // slli
+                    3'b101: ALUControl = (funct7 == 7'b0000000) ? OP_SRL : OP_SRA; // srli or srai
+                    default: ALUControl = OP_ADD;
+                endcase
             end
             
             // Handle I-type instructions (Load Word)
