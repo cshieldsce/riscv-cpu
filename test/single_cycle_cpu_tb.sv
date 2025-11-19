@@ -12,6 +12,9 @@ module single_cycle_cpu_tb;
     logic [31:0] result_x7;
     logic [31:0] result_x8;
     logic [31:0] result_x9;
+    logic [31:0] result_x10;
+    logic [31:0] result_x11;
+    logic [31:0] result_x12;
 
     logic [31:0] val_mem8;
 
@@ -45,7 +48,7 @@ module single_cycle_cpu_tb;
         rst = 0;
         #1;
 
-        // --- TEST 1: R, I, Load, Store ---
+        // --- R, I, Load, Store ---
         $display("CPU running...");
         // 5 instructions: add, sub, addi, sw, lw
         repeat (5) @(posedge clk);
@@ -91,7 +94,7 @@ module single_cycle_cpu_tb;
             $display("PASS: 'lw' instruction (x7 = 5) correct.");
         end
 
-        // --- TEST 2: Branch and Jump ---
+        // --- Branching ---
         // Next 4 instructions: addi x1, addi x2, beq (taken), addi x4 (at target)
         repeat (4) @(posedge clk);
         #1;
@@ -126,7 +129,7 @@ module single_cycle_cpu_tb;
             $display("PASS: 'addi' instruction (x4 = 200) correct.");
         end
 
-        // --- TEST 3: JAL Instruction ---
+        // --- Jump (jal) ---
         // Next 4 instructions: addi x1, jal, addi x2 (target), addi x5
         repeat (4) @(posedge clk);
         #1;
@@ -160,6 +163,40 @@ module single_cycle_cpu_tb;
             $error("FAIL: 'addi' instruction after jump target. Expected x5=99, but got %d.", result_x5);
         end else begin
             $display("PASS: 'addi' instruction after jump target (x5 = 99) correct.");
+        end
+
+        // --- Function call (jalr) ---
+
+        repeat(8) @(posedge clk);
+        #1;
+
+        result_x1 = cpu_inst.reg_file_inst.register_memory[1];
+        result_x10 = cpu_inst.reg_file_inst.register_memory[10];
+        result_x11 = cpu_inst.reg_file_inst.register_memory[11];
+        result_x12 = cpu_inst.reg_file_inst.register_memory[12];
+
+        if (result_x1 != 32'd68) begin
+            $error("FAIL: 'addi' instruction function call link. Expected x1=72, but got %d.", result_x1);
+        end else begin
+            $display("PASS: 'addi' instruction function call link (x1 = 72) correct.");
+        end
+
+        if (result_x10 != 32'd15) begin
+            $error("FAIL: 'addi' instruction function execution. Expected x10=15, but got %d.", result_x10);
+        end else begin
+            $display("PASS: 'addi' instruction function execution (x10 = 15) correct.");
+        end
+
+        if (result_x11 != 32'd1) begin
+            $error("FAIL: 'addi' check return. Expected x11=1, but got %d.", result_x11);
+        end else begin
+            $display("PASS: 'addi' check return (x11 = 1) correct.");
+        end
+
+        if (result_x12 != 32'd1) begin
+            $error("FAIL: 'addi' after return. Expected x12=1, but got %d.", result_x12);
+        end else begin
+            $display("PASS: 'addi' after return (x12 = 1) correct.");
         end
 
         $display("Testbench Finished.");
