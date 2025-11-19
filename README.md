@@ -39,13 +39,13 @@ graph LR
 
 The goal is to build a **complete and robust single-cycle RISC-V (RV32I) CPU core** that can execute all major instruction types.
 
-* [x] **R-Type:** `add`, `sub`.
-* [x] **I-Type (Immediate):** Add support for `addi`. This requires an Immediate Generator and a new MUX for the ALU.
+* [x] **R-Type:** `add`, `sub`, `and`, `or`, `xor`, `sll`, `srl`, `sra`, `slt`, `sltu`.
+* [x] **I-Type (Immediate):** Add support for `addi`, `xori`, `andi`, `ori`, `slli`, `srli`, `srai`, `slti`, `sltiu`. This requires an Immediate Generator and a new MUX for the ALU.
 * [x] **I-Type (Load):** Add support for `lw` (load word). This requires adding a Data Memory and a MUX for the write-back data.
 * [x] **S-Type (Store):** Add support for `sw` (store word), which uses the Data Memory.
 * [X] **B-Type (Branch):** Add support for `beq` (branch if equal). This requires new logic to check the ALU's Zero flag and update the PC.
-* [X] **J-Type (Jump):** Add support for `jal` (jump and link).
-* [ ] **Complete Instructions:** Add all remaining instructions.
+* [X] **J-Type (Jump):** Add support for `jal` (jump and link), `jalr` (jump and register).
+* [X] **Complete Instructions:** Add all remaining instructions.
 * [ ] **Final Verification:** Create a comprehensive test program that uses all supported instructions to verify the full design.
 
 ## Detailed Architecture
