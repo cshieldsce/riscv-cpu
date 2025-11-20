@@ -1,0 +1,14 @@
+// Simple Pipeline Test (No Hazards)
+// 1. addi x1, x0, 10
+00a00093
+// 2. addi x2, x0, 20
+01400113
+// 3. addi x3, x0, 30
+01e00193
+// 4. nop (addi x0, x0, 0)
+00000013
+// 5. nop
+00000013
+
+@3F
+00000000
