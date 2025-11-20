@@ -15,20 +15,20 @@ module SingleCycleCPU (
     logic [6:0] funct7;
     logic [2:0] funct3;
 
-    assign opcode = instruction[6:0]; // Bits 0-6
-    assign rd = instruction[11:7];    // Bits 7-11
-    assign rs1 = instruction[19:15];  // Bits 15-19
-    assign rs2 = instruction[24:20];  // Bits 20-24
-    assign funct7 = instruction[31:25];
-    assign funct3 = instruction[14:12];
+    assign opcode = instruction[6:0];    // Bits 0-6
+    assign rd     = instruction[11:7];   // Bits 7-11
+    assign rs1    = instruction[19:15];  // Bits 15-19
+    assign rs2    = instruction[24:20];  // Bits 20-24
+    assign funct7 = instruction[31:25];  // Bits 25-31
+    assign funct3 = instruction[14:12];  // Bits 12-14
 
     // Signals from Control Unit
-    logic RegWrite, MemWrite;
+    logic       RegWrite, MemWrite;
     logic [3:0] ALUControl;
-    logic ALUSrc;
-    logic ALUZero;
+    logic       ALUSrc;
+    logic       ALUZero;
     logic [1:0] MemToReg;
-    logic Branch, Jump, Jalr;
+    logic       Branch, Jump, Jalr;
 
     // 32-bit 'datapath' wires
     logic [31:0] ReadData1, ReadData2;
@@ -39,7 +39,7 @@ module SingleCycleCPU (
     // PC and Branch logic
     logic [31:0] pc_plus_4, pc_next;
     logic [31:0] branch_target, jump_target;
-    logic PCSrc;
+    logic        PCSrc;
 
     // Instruction Fetch Stage
     // Fetches the 'instruction' at the current 'pc_out'
