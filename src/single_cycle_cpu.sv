@@ -6,15 +6,12 @@ module SingleCycleCPU (
 );
 
     // Signals from Instruction Fetch
-    logic [31:0] pc_out;
-    logic [31:0] instruction; // Raw 32-bit instruction fetched from memory
+    logic [31:0] pc_out, instruction; // Raw 32-bit instruction fetched from memory
 
     // Decoded instruction fields
     // The RISC-V ISA defines these specific bit locations
     logic [6:0] opcode;
-    logic [4:0] rd;
-    logic [4:0] rs1;
-    logic [4:0] rs2;
+    logic [4:0] rd, rs1, rs2;
     logic [6:0] funct7;
     logic [2:0] funct3;
 
@@ -26,32 +23,23 @@ module SingleCycleCPU (
     assign funct3 = instruction[14:12];
 
     // Signals from Control Unit
-    logic RegWrite;
+    logic RegWrite, MemWrite;
     logic [3:0] ALUControl;
     logic ALUSrc;
     logic ALUZero;
-    logic MemWrite;
     logic [1:0] MemToReg;
-    logic Branch;
-    logic Jump;
-    logic Jalr;
+    logic Branch, Jump, Jalr;
 
     // 32-bit 'datapath' wires
-    logic [31:0] ReadData1;
-    logic [31:0] ReadData2;
-    logic [31:0] ALUResult;
-    logic [31:0] ImmGenOut;
-    logic [31:0] ALU_B_Data;
-    logic [31:0] MemReadData;
+    logic [31:0] ReadData1, ReadData2;
+    logic [31:0] ALUResult, ImmGenOut;
+    logic [31:0] ALU_B_Data, MemReadData;
     logic [31:0] WriteData_Mux_Out;
 
     // PC and Branch logic
-    logic [31:0] pc_plus_4;
-    logic [31:0] branch_target;
-    logic [31:0] jump_target;
-    logic [31:0] pc_next;   // keep this name consistent with IF_Stage
+    logic [31:0] pc_plus_4, pc_next;
+    logic [31:0] branch_target, jump_target;
     logic PCSrc;
-
 
     // Instruction Fetch Stage
     // Fetches the 'instruction' at the current 'pc_out'
