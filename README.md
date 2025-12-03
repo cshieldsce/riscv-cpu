@@ -52,3 +52,8 @@ Phase 2: 5-Stage Pipelining (In Progress)
 - [x] **Pipeline Registers:** Insert registers between IF, ID, EX, MEM, and WB stages.
 - [ ] **Hazard Unit:** Detect data hazards and insert bubbles (stalls).
 - [x] **Forwarding Unit:** Implement operand forwarding to resolve RAW hazards without stalling.
+
+## References
+
+- [COMPUTER ORGANIZATION AND DESIGN THE HARDWARE/SOFTWARE INTERFACE RISC-V EDITION by DAVID A. PATTERSON & JOHN L. HENNESSY| Chapter 4 - The Processor](https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/books/HandP_RISCV.pdf)
+- [The RISC-V Instruction Set Manual Volume I | Unprivileged Architecture ](https://docs.riscv.org/reference/isa/_attachments/riscv-unprivileged.pdf)
