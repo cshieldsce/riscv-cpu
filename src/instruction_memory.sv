@@ -8,7 +8,7 @@ module InstructionMemory (
 
     // Initialize memory
     initial begin
-        $readmemh("mem/program.mem", rom_memory); //Load file into rom_memory
+        $readmemh("mem/hazard_test.mem", rom_memory); //Load file into rom_memory
     end
 
     // Combinational read logic
