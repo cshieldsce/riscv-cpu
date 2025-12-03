@@ -334,4 +334,13 @@ module PipelinedCPU (
         endcase
     end
 
+    // --- WAVEFORM DUMPING ---
+    initial begin
+        // 1. Create the file "waveform.vcd"
+        $dumpfile("waveform.vcd");
+        
+        // 2. Dump everything (level 0) inside the testbench module
+        $dumpvars(0, fib_test_tb);
+    end
+
 endmodule
