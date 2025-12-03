@@ -1,0 +1,10 @@
+// Data Hazard Test
+
+00a00093 // 1. addi x1, x0, 10 (x1 = 10)
+00108133 // 2. add  x2, x1, x1 (x2 = 20) This SHOULD fail without forwarding/stalls
+00000013 // 3. nop
+00000013 // 4. nop
+00000013 // 5. nop
+
+@3F
+00000000
