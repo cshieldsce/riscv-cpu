@@ -55,5 +55,6 @@ Phase 2: 5-Stage Pipelining (In Progress)
 
 ## References
 
-- [COMPUTER ORGANIZATION AND DESIGN THE HARDWARE/SOFTWARE INTERFACE RISC-V EDITION by DAVID A. PATTERSON & JOHN L. HENNESSY| Chapter 4 - The Processor](https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/books/HandP_RISCV.pdf)
+- [Computer Organization and Design | The Hardware/Software Interface | RISC-V Edition by David A. Patterson & John L. Hennessy | Chapter 4 - The Processor](https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/books/HandP_RISCV.pdf)
+
 - [The RISC-V Instruction Set Manual Volume I | Unprivileged Architecture](https://docs.riscv.org/reference/isa/_attachments/riscv-unprivileged.pdf)
