@@ -4,7 +4,7 @@
 
 ## Architecture Overview
 
-The CPU implements a 5-stage pipelined Harvard architecture (IF, ID, EX, MEM, WB). Its datapath is divided into stages to maximize instruction throughput. The design incorporates a Forwarding Unit to resolve data hazards via operand bypassing and Hazard Detection logic to manage pipeline stalls and control flow, ensuring correct execution of Arithmetic, Logic, Memory, Branch, and Jump operations.
+The CPU implements a 5-stage pipelined Harvard architecture (IF, ID, EX, MEM, WB). Its datapath is divided into stages to maximize instruction throughput. The design incorporates a Forwarding Unit to resolve data hazards via operand bypassing and Hazard Detection logic to manage pipeline stalls and control flow, ensuring correct execution of Arithmetic, Logic, Memory, Branch, and Jump operations. More detailed notes on the pipeline can be found [here](docs/pipeline_notes.md).
 
 ![alt text](docs/pipeline.png)
 
