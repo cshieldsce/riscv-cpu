@@ -4,7 +4,7 @@
 
 ## Architecture Overview
 
-The CPU implements a classic single-cycle Harvard architecture. It features a dedicated control unit handling 10 different control signals and a datapath capable of executing Arithmetic, Logic, Memory, Branch, and Jump operations in a single clock cycle.
+The CPU implements a 5-stage pipelined Harvard architecture (IF, ID, EX, MEM, WB). Its datapath is divided into stages to maximize instruction throughput. The design incorporates a Forwarding Unit to resolve data hazards via operand bypassing and Hazard Detection logic to manage pipeline stalls and control flow, ensuring correct execution of Arithmetic, Logic, Memory, Branch, and Jump operations.
 
 ![alt text](docs/pipeline.png)
 
@@ -50,8 +50,8 @@ Phase 1: Single-Cycle Core (Completed)
 Phase 2: 5-Stage Pipelining (In Progress)
 
 - [x] **Pipeline Registers:** Insert registers between IF, ID, EX, MEM, and WB stages.
-- [ ] **Hazard Unit:** Detect data hazards and insert bubbles (stalls).
 - [x] **Forwarding Unit:** Implement operand forwarding to resolve RAW hazards without stalling.
+- [ ] **Hazard Unit:** Detect data hazards and insert bubbles (stalls).
 
 ## References
 
