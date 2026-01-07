@@ -1,0 +1,18 @@
+// Load-Use Hazard Test
+// Load value 10 into x1 from memory address 20 (assume memory[20/4] is init to 10)
+
+00000093 // addi x1, x0, 0   (setup address 0)
+00a00113 // addi x2, x0, 10  (setup data 10)
+0020a023 // sw   x2, 0(x1)   (Mem[0] = 10)
+
+// --- HAZARD SEQUENCE ---
+0000a083 // lw   x1, 0(x0)   (Load x1 = 10)
+001081b3 // add  x3, x1, x1  (Use x1 immediately! Should be 10+10=20)
+// -----------------------
+
+00000013 // nop
+00000013 // nop
+
+// Pad the rest of the memory with zeros.
+@3F
+00000000

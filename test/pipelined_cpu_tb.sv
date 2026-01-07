@@ -18,6 +18,9 @@ module pipelined_cpu_tb;
     end
 
     initial begin
+        $dumpfile("waveform.vcd");
+        $dumpvars(0, pipelined_cpu_tb); // Dump this testbench
+
         $display("Starting Pipelined CPU Test...");
 
         // --- SETUP ---

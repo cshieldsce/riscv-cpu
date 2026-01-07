@@ -44,10 +44,6 @@ module PipelinedCPU (
     logic        ex_zero;
     logic [31:0] ex_branch_target;
 
-    // Forwarding Wires
-    logic [1:0]  forward_a, forward_b; // MUX selectors from ForwardingUnit
-    logic [31:0] alu_in_a, alu_in_b;   // The actual data entering the ALU
-
     // EX/MEM PIPELINE REGISTER
     logic [31:0] ex_mem_alu_result, ex_mem_write_data; // Data to store to memory (from rs2)
     logic [4:0]  ex_mem_rd;
@@ -72,15 +68,36 @@ module PipelinedCPU (
     // --- WB: WRITEBACK ---
     logic [31:0] wb_write_data; // Final data to write back to RegFile
 
+    // FORWARDING UNIT
+    logic [1:0]  forward_a, forward_b; // MUX selectors from ForwardingUnit
+    logic [31:0] alu_in_a, alu_in_b;   // The actual data entering the ALU
+
+    // HAZARD UNIT
+    logic stall_if, stall_id, flush_ex, flush_id;
+    logic pcsrc; // Combined branch/jump signal
+
     // ========================================================================
     // IF: INSTRUCTION FETCH
     // ========================================================================    
 
     logic [31:0] next_pc; // Wire for the next PC address
 
-    // For now, just fetch the next sequential instruction (PC+4).
-    // TODO: We will add the MUX here later to handle Branches and Jumps!
-    assign next_pc = if_pc_plus_4;
+    // 1. Determine if a branch/jump is taken
+    // PCSrc is high if: (Branch is taken) OR (Jump instruction)
+    assign pcsrc = (id_ex_branch & ex_zero) | id_ex_jump | id_ex_jalr;
+
+    // 2. Next PC Mux
+    always_comb begin
+        if (stall_if) begin
+            next_pc = if_pc; // STALL: Keep the same PC
+        end else if (id_ex_jalr) begin
+            next_pc = ex_alu_result; // JALR Target
+        end else if ((id_ex_branch & ex_zero) || id_ex_jump) begin
+            next_pc = ex_branch_target; // Branch/JAL Target
+        end else begin
+            next_pc = if_pc_plus_4; // Normal: PC + 4
+        end
+    end
 
     // --- IF_Stage ---
     IF_Stage if_stage_inst (
@@ -103,8 +120,8 @@ module PipelinedCPU (
     PipelineRegister #(96) if_id_reg (
         .clk(clk),
         .rst(rst),
-        .en(1'b1),                                           // Always enabled (for now)
-        .clear(1'b0),                                        // No flush (for now)
+        .en(~stall_id),                                      // Stall if needed
+        .clear(flush_id),                                    // Flush if needed
         .in({if_pc, if_instruction, if_pc_plus_4}),          // Pack inputs
         .out({if_id_pc, if_id_instruction, if_id_pc_plus_4}) // Unpack outputs
     );
@@ -153,6 +170,19 @@ module PipelinedCPU (
         .instruction(if_id_instruction),
         .opcode(id_opcode),
         .imm_out(id_imm_out)
+    );
+
+    // --- Hazard Unit ---
+    HazardUnit hazard_unit_inst (
+        .id_rs1(id_rs1),
+        .id_rs2(id_rs2),
+        .id_ex_rd(id_ex_rd),
+        .id_ex_mem_read(id_ex_mem_to_reg[0]), // Bit 0 of MemToReg is 1 for LW (01)
+        .PCSrc(pcsrc),
+        .stall_if(stall_if),
+        .stall_id(stall_id),
+        .flush_ex(flush_ex),
+        .flush_id(flush_id)
     );
 
     // ID/EX PIPELINE REGISTER:
@@ -276,7 +306,7 @@ module PipelinedCPU (
     );
 
     // ========================================================================
-    // 4. MEM: Memory
+    // MEM: Memory
     // ========================================================================
 
     // --- Data Memory ---
@@ -333,14 +363,4 @@ module PipelinedCPU (
             default: wb_write_data = 32'b0;
         endcase
     end
-
-    // --- WAVEFORM DUMPING ---
-    initial begin
-        // 1. Create the file "waveform.vcd"
-        $dumpfile("waveform.vcd");
-        
-        // 2. Dump everything (level 0) inside the testbench module
-        $dumpvars(0, fib_test_tb);
-    end
-
 endmodule

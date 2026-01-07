@@ -6,5 +6,6 @@
 00000013 // 4. nop
 00000013 // 5. nop
 
+// Pad the rest of the memory with zeros.
 @3F
 00000000

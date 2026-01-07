@@ -106,7 +106,7 @@ We cant forward the data because it doesn't exist inside the CPU yet. It will on
 
 Since we can't speed up the data fetch, we must slow down the pipeline. We can insert a "bubble" (a NOP) into the pipeline to delay the dependent instruction by one cycle.
 
-To do this, you must do three things **simultaneously**:
+To do this, we must do three things **simultaneously**:
 
 1. **Freeze the PC**: Stop fetching new instructions.
 2. **Freeze the IF/ID Register**: Keep the add instruction in the Decode stage so it can try again next cycle.
