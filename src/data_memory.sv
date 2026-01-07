@@ -33,7 +33,7 @@ module DataMemory (
             end
             // 2. Normal RAM: Handle Sizes
             else if (word_addr < 1024) begin
-                case (Funct3)
+                case (funct3)
                     F3_BYTE: begin // Store Byte (sb)
                         case (byte_offset)
                             2'b00: ram_memory[word_addr][7:0]   <= WriteData[7:0];
@@ -55,7 +55,4 @@ module DataMemory (
             end
         end
     end
-    // Asynchronous Reads
-    assign ReadData = ram_memory[Address >> 2];
-
 endmodule
