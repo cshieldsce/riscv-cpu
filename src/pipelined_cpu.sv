@@ -197,8 +197,8 @@ module PipelinedCPU (
     PipelineRegister #(187) id_ex_reg (
         .clk(clk),
         .rst(rst),
-        .en(1'b1),    // Always enable (for now)
-        .clear(1'b0), // No flush (for now)
+        .en(1'b1),        // Always enable ID/EX register
+        .clear(flush_ex), // Flush if needed
         .in({
             // Data Payload
             if_id_pc, if_id_pc_plus_4,

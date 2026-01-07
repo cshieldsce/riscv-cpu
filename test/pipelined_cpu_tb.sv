@@ -26,7 +26,6 @@ module pipelined_cpu_tb;
         // --- SETUP ---
         // Initialize registers directly
         cpu_inst.reg_file_inst.register_memory[1] = 32'd0; 
-        //cpu_inst.reg_file_inst.register_memory[2] = 32'd0;
 
         // --- RESET ---
         rst = 1;
@@ -41,20 +40,12 @@ module pipelined_cpu_tb;
         #1;
 
         $display("Register x1: %d (Expected 10)", cpu_inst.reg_file_inst.register_memory[1]);
-        $display("Register x2: %d (Expected 20)", cpu_inst.reg_file_inst.register_memory[2]);
+        $display("Register x3: %d (Expected 20)", cpu_inst.reg_file_inst.register_memory[3]);
         
-        if (cpu_inst.reg_file_inst.register_memory[2] == 32'd20)
+        if (cpu_inst.reg_file_inst.register_memory[3] == 32'd20)
             $display("PASS: Data Hazard handled correctly!");
         else
             $display("FAIL: Data Hazard detected! Read old value.");
-        
-        // --- VERIFY ---
-        // We will check the results manually in the simulation output/waveform for now.
-        // $display("Final PC: %h", cpu_inst.if_pc);
-        // $display("Register x1: %d (Expected 10)", cpu_inst.reg_file_inst.register_memory[1]);
-        // $display("Register x2: %d (Expected 20)", cpu_inst.reg_file_inst.register_memory[2]);
-        // $display("Register x3: %d (Expected 30)", cpu_inst.reg_file_inst.register_memory[3]);
-
 
         $display("Testbench Finished.");
         $finish;
