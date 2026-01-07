@@ -1,0 +1,14 @@
+// Test Store Byte functionality
+
+FFF00093 // li x1, -1 (0xFFFFFFFF)
+00102023 // sw x1, 0(x0)
+00000023 // sb x0, 0(x0)  (Should only clear the bottom byte)
+00002103 // lw x2, 0(x0)  (Check result)
+00000013 // nop
+00000013 // nop
+00000013 // nop
+00000013 // nop
+
+// Pad to end
+@3F
+00000000

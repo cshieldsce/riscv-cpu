@@ -47,6 +47,13 @@ module pipelined_cpu_tb;
         else
             $display("FAIL: Data Hazard detected! Read old value.");
 
+        // Inside the testbench initial block
+        if (cpu_inst.reg_file_inst.register_memory[2] == 32'hFFFFFF00) begin
+            $display("PASS: Store Byte works correctly!");
+        end else begin
+            $display("FAIL: Store Byte failed. Got %h", cpu_inst.reg_file_inst.register_memory[2]);
+        end
+
         $display("Testbench Finished.");
         $finish;
     end
