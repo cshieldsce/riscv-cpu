@@ -1,3 +1,5 @@
+import riscv_pkg::*;
+
 module ControlUnit (
     input logic [6:0] opcode,
     input logic [2:0] funct3,
@@ -12,19 +14,6 @@ module ControlUnit (
     output logic Jalr
     
 );
-
-    // Define ALU operations
-    parameter OP_AND = 4'b0000;
-    parameter OP_OR  = 4'b0001;
-    parameter OP_ADD = 4'b0010;
-    parameter OP_SUB = 4'b0110;
-    parameter OP_SLT  = 4'b0111; // Set Less Than (Signed)
-    parameter OP_SLTU = 4'b1000; // Set Less Than (Unsigned)
-    parameter OP_XOR  = 4'b1001;
-    parameter OP_SLL  = 4'b1010; // Shift Left Logical
-    parameter OP_SRL  = 4'b1011; // Shift Right Logical
-    parameter OP_SRA  = 4'b1100; // Shift Right Arithmetic
-
     always_comb begin
         // Default control signals
         RegWrite = 1'b0;
@@ -40,80 +29,80 @@ module ControlUnit (
         case (opcode)
 
             // Handle R-type instructions
-            7'b0110011: begin 
+            OP_R_TYPE: begin 
                 RegWrite = 1'b1;
                 ALUSrc = 1'b0;    // Use ReadData2
                 MemToReg = 2'b00; // Write ALUResult to RegFile
 
                 case (funct3)
-                    3'b000: ALUControl = (funct7 == 7'b0000000) ? OP_ADD : OP_SUB;  // add or sub
-                    3'b001: ALUControl = OP_SLL;                                    // shift left logical
-                    3'b010: ALUControl = OP_SLT;                                    // set less than signed
-                    3'b011: ALUControl = OP_SLTU;                                   // set less than unsigned
-                    3'b100: ALUControl = OP_XOR;                                    // xor
-                    3'b101: ALUControl = (funct7 == 7'b0000000) ? OP_SRL : OP_SRA;  // srl or sra
-                    3'b110: ALUControl = OP_OR;                                     // or
-                    3'b111: ALUControl = OP_AND;                                    // and
+                    F3_BYTE: ALUControl = (funct7 == 7'b0000000) ? ALU_ADD : ALU_SUB;  // add or sub
+                    F3_HALF: ALUControl = ALU_SLL;                                    // shift left logical
+                    F3_WORD: ALUControl = ALU_SLT;                                    // set less than signed
+                    F3_IM: ALUControl = ALU_SLTU;                                   // set less than unsigned
+                    F3_BU: ALUControl = ALU_XOR;                                    // xor
+                    F3_HU: ALUControl = (funct7 == 7'b0000000) ? ALU_SRL : ALU_SRA;  // srl or sra
+                    F3_OR: ALUControl = ALU_OR;                                     // or
+                    F3_AND: ALUControl = ALU_AND;                                    // and
                     default: ALUControl = 4'b0000;
                 endcase
             end
 
             // Handle I-type instructions (addi)
-            7'b0010011: begin
+            OP_I_TYPE: begin
                 RegWrite = 1'b1;
                 ALUSrc = 1'b1;
                 MemToReg = 2'b00;
-                ALUControl = OP_ADD;
+                ALUControl = ALU_ADD; // Default to addi
 
                 case (funct3)
-                    3'b000: ALUControl = OP_ADD; // addi
-                    3'b010: ALUControl = OP_SLT; // slti
-                    3'b011: ALUControl = OP_SLTU; // sltiu
-                    3'b100: ALUControl = OP_XOR; // xori
-                    3'b110: ALUControl = OP_OR;  // ori
-                    3'b111: ALUControl = OP_AND; // andi
-                    3'b001: ALUControl = OP_SLL; // slli
-                    3'b101: ALUControl = (funct7 == 7'b0000000) ? OP_SRL : OP_SRA; // srli or srai
-                    default: ALUControl = OP_ADD;
+                    F3_BYTE: ALUControl = ALU_ADD; // addi
+                    F3_WORD: ALUControl = ALU_SLT; // slti
+                    F3_IM: ALUControl = ALU_SLTU; // sltiu
+                    F3_BU: ALUControl = ALU_XOR; // xori
+                    F3_OR: ALUControl = ALU_OR;  // ori
+                    F3_AND: ALUControl = ALU_AND; // andi
+                    F3_HALF: ALUControl = ALU_SLL; // slli
+                    F3_HU: ALUControl = (funct7 == 7'b0000000) ? ALU_SRL : ALU_SRA; // srli or srai
+                    default: ALUControl = ALU_ADD;
                 endcase
             end
             
             // Handle I-type instructions (Load Word)
-            7'b0000011: begin 
+            OP_LOAD: begin 
                 RegWrite = 1'b1;     // 'lw' writes to a register
                 ALUSrc = 1'b1;       // Use Immediate for address offset
                 MemToReg = 2'b01;    // Write data from memory to RegFile
-                ALUControl = OP_ADD; // ALU calculates rs1 + imm
+                ALUControl = ALU_ADD; // ALU calculates rs1 + imm
             end
 
             // Handle S-type instructions (Store Word)
-            7'b0100011: begin
+            OP_STORE: begin
                 ALUSrc = 1'b1;       // Use Immediate for address offset
                 MemWrite = 1'b1;     // 'sw' writes to memory
-                ALUControl = OP_ADD; // ALU calculates rs1 + imm
+                ALUControl = ALU_ADD; // ALU calculates rs1 + imm
             end
 
             // Handle B-type instructions (Branch Equal)
-            7'b1100011: begin
+            OP_BRANCH: begin
                 Branch = 1'b1;       // 'beq' instruction
                 ALUSrc = 1'b0;       // Use ReadData2
-                ALUControl = OP_SUB; // ALU performs subtraction for comparison
+                ALUControl = ALU_SUB; // ALU performs subtraction for comparison
             end
 
             // Handle J-type instructions (Jump and Link)
-            7'b1101111: begin
+            OP_JAL: begin
                 RegWrite = 1'b1;  // 'jal' writes to a register
                 Jump = 1'b1;      // Indicate a jump instruction
                 MemToReg = 2'b10; // PC+4 for jal
             end
 
             // Handle J-type instructions (Jump and Link Register)
-            7'b1100111: begin
+            OP_JALR: begin
                 RegWrite = 1'b1;  // 'jalr' writes to a register
                 Jalr = 1'b1;      // Indicate a jump instruction
                 ALUSrc = 1'b1;    // Use Immediate for address calculation
                 MemToReg = 2'b10; // PC+4 for jalr
-                ALUControl = OP_ADD; // ALU calculates rs1 + imm
+                ALUControl = ALU_ADD; // ALU calculates rs1 + imm
             end
 
         endcase

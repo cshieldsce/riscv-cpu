@@ -50,7 +50,7 @@ Phase 1: Single-Cycle Core (Completed)
 Phase 2: 5-Stage Pipelining (Completed)
 
 - [x] **Pipeline Registers:** Insert registers between IF, ID, EX, MEM, and WB stages.
-- [x] **Forwarding Unit:** Implement operand forwarding to resolve RAW hazards without stalling.
+- [x] **Forwarding Unit:** Implement operand forwarding to resolve hazards without stalling.
 - [x] **Hazard Unit:** Detect data hazards and insert bubbles (stalls).
 
 Phase 3: Put it on an FPGA (In-progress)
@@ -59,6 +59,10 @@ Phase 3: Put it on an FPGA (In-progress)
 - [ ] Create FPGA Wrapper
 - [ ] Synthesis on Vivado WebPACK
 - [ ] Run a Blinky ASM program
+
+Phase 4: External Memory Interface (Future)
+
+- [ ] Implement a Simple Bus Interface
 
 ## References
 

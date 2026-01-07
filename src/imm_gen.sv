@@ -1,3 +1,4 @@
+import riscv_pkg::*;
 module ImmGen (
     input  logic [31:0] instruction,
     input  logic [6:0]  opcode,
@@ -37,15 +38,15 @@ module ImmGen (
     // Output mux based on opcode
     always_comb begin
         case (opcode)
-            7'b0010011: // I-type (addi)
+            OP_I_TYPE: // I-type (addi)
                 imm_out = imm_I;
-            7'b0000011: // I-type (lw)
+            OP_LOAD: // I-type (lw)
                 imm_out = imm_I;
-            7'b0100011: // S-type (sw)
+            OP_STORE: // S-type (sw)
                 imm_out = imm_S;
-            7'b1100011: // B-type (beq)
+            OP_BRANCH: // B-type (beq)
                 imm_out = imm_B;
-            7'b1101111: // J-type (jal)
+            OP_JAL: // J-type (jal)
                 imm_out = imm_J;
             default:
                 imm_out = 32'd0; // Default case
