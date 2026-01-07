@@ -39,15 +39,7 @@ module pipelined_cpu_tb;
         repeat (10) @(posedge clk);
         #1;
 
-        $display("Register x1: %d (Expected 10)", cpu_inst.reg_file_inst.register_memory[1]);
-        $display("Register x3: %d (Expected 20)", cpu_inst.reg_file_inst.register_memory[3]);
-        
-        if (cpu_inst.reg_file_inst.register_memory[3] == 32'd20)
-            $display("PASS: Data Hazard handled correctly!");
-        else
-            $display("FAIL: Data Hazard detected! Read old value.");
-
-        // Inside the testbench initial block
+        // --- CHECK RESULTS ---
         if (cpu_inst.reg_file_inst.register_memory[2] == 32'hFFFFFF00) begin
             $display("PASS: Store Byte works correctly!");
         end else begin
