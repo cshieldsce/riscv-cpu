@@ -22,6 +22,44 @@ module DataMemory (
 
     // --- READ ---
     assign ReadData = (word_addr < 1024) ? ram_memory[word_addr] : 32'b0;
+    always_comb begin
+        ReadData = 32'b0; // Default
+        if (word_addr < 1024) begin
+            logic [31:0] raw_word;
+            raw_word = ram_memory[word_addr];
+            case (funct3)
+                F3_BYTE: begin // Load Byte (lb)
+                    case (byte_offset)
+                        2'b00: ReadData = {{24{raw_word[7]}}, raw_word[7:0]};
+                        2'b01: ReadData = {{24{raw_word[15]}}, raw_word[15:8]};
+                        2'b10: ReadData = {{24{raw_word[23]}}, raw_word[23:16]};
+                        2'b11: ReadData = {{24{raw_word[31]}}, raw_word[31:24]};
+                    endcase
+                end
+                F3_HALF: begin // Load Half-word (lh)
+                    case (byte_offset[1])
+                        1'b0: ReadData = {{16{raw_word[15]}}, raw_word[15:0]};
+                        1'b1: ReadData = {{16{raw_word[31]}}, raw_word[31:16]};
+                    endcase
+                end
+                F3_BU: begin // Load Byte Unsigned (lbu)
+                    case (byte_offset)
+                        2'b00: ReadData = {24'b0, raw_word[7:0]};
+                        2'b01: ReadData = {24'b0, raw_word[15:8]};
+                        2'b10: ReadData = {24'b0, raw_word[23:16]};
+                        2'b11: ReadData = {24'b0, raw_word[31:24]};
+                    endcase
+                end
+                F3_HU: begin // Load Half-word Unsigned (lhu)
+                    case (byte_offset[1])
+                        1'b0: ReadData = {16'b0, raw_word[15:0]};
+                        1'b1: ReadData = {16'b0, raw_word[31:16]};
+                    endcase
+                end
+                default: begin // Load Word (lw)
+                    ReadData = raw_word;
+                end
+    
     assign leds_out = led_reg;
 
     // --- WRITE ---
