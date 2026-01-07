@@ -47,11 +47,18 @@ Phase 1: Single-Cycle Core (Completed)
 - [x] Developed modular Control Unit with ALU decoding.
 - [x] Verified functionality with Fibonacci and regression testbenches.
 
-Phase 2: 5-Stage Pipelining (In Progress)
+Phase 2: 5-Stage Pipelining (Completed)
 
 - [x] **Pipeline Registers:** Insert registers between IF, ID, EX, MEM, and WB stages.
 - [x] **Forwarding Unit:** Implement operand forwarding to resolve RAW hazards without stalling.
-- [ ] **Hazard Unit:** Detect data hazards and insert bubbles (stalls).
+- [x] **Hazard Unit:** Detect data hazards and insert bubbles (stalls).
+
+Phase 3: Put it on an FPGA (In-progress)
+
+- [ ] Implement MMIO
+- [ ] Create FPGA Wrapper
+- [ ] Synthesis on Vivado WebPACK
+- [ ] Run a Blinky ASM program
 
 ## References
 
