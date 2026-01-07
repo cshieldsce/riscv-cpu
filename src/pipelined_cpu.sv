@@ -1,7 +1,8 @@
 // 5-Stage Pipelined RISC-V CPU Top-Level
 module PipelinedCPU (
     input logic clk,
-    input logic rst
+    input logic rst,
+    output logic [3:0] leds_out
 );
     // ========================================================================
     // STAGES CONTROL SIGNALS AND WIRES
@@ -75,6 +76,10 @@ module PipelinedCPU (
     // HAZARD UNIT
     logic stall_if, stall_id, flush_ex, flush_id;
     logic pcsrc; // Combined branch/jump signal
+
+    // MMIO signals
+    logic [2:0] id_ex_funct3;  // Funct3 in Execute Stage
+    logic [2:0] ex_mem_funct3; // Funct3 in Memory Stage
 
     // ========================================================================
     // IF: INSTRUCTION FETCH
@@ -189,12 +194,12 @@ module PipelinedCPU (
     //
     // Total Width Calculation:
     // This register captures all data and control signals needed for the EX stage.
-    // Data: PC(32) + PC+4(32) + ReadData1(32) + ReadData2(32) + Imm(32) + rs1(5) + rs2(5) + rd(5) = 175 bits
+    // Data: PC(32) + PC+4(32) + ReadData1(32) + ReadData2(32) + Imm(32) + rs1(5) + rs2(5) + rd(5) + funct3(3) = 178 bits
     // Control: RegWrite(1) + MemWrite(1) + ALUControl(4) + ALUSrc(1) + MemToReg(2) + Branch(1) + Jump(1) + Jalr(1) = 12 bits
-    // Total = 187 bits
+    // Total = 190 bits
     //
 
-    PipelineRegister #(187) id_ex_reg (
+    PipelineRegister #(190) id_ex_reg (
         .clk(clk),
         .rst(rst),
         .en(1'b1),        // Always enable ID/EX register
@@ -203,7 +208,7 @@ module PipelinedCPU (
             // Data Payload
             if_id_pc, if_id_pc_plus_4,
             id_read_data1, id_read_data2, id_imm_out, 
-            id_rs1, id_rs2, id_rd,
+            id_rs1, id_rs2, id_rd, id_funct3,
             // Control Payload
             id_reg_write, id_mem_write,
             id_alu_control, id_alu_src, id_mem_to_reg, 
@@ -213,7 +218,7 @@ module PipelinedCPU (
             // Data Payload
             id_ex_pc, id_ex_pc_plus_4, 
             id_ex_read_data1, id_ex_read_data2, id_ex_imm, 
-            id_ex_rs1, id_ex_rs2, id_ex_rd,
+            id_ex_rs1, id_ex_rs2, id_ex_rd, id_ex_funct3,
             // Control Payload
             id_ex_reg_write, id_ex_mem_write,
             id_ex_alu_control, id_ex_alu_src, id_ex_mem_to_reg, 
@@ -278,12 +283,12 @@ module PipelinedCPU (
     // This register captures the calculation results for the Memory stage.
     //
     // Total Width Calculation:
-    // Data: ALUResult(32) + WriteData(32, from rs2) + rd(5) + PC+4(32) = 101 bits
+    // Data: ALUResult(32) + WriteData(32, from rs2) + rd(5) + PC+4(32) + funct3(3) = 104 bits
     // Control: RegWrite(1) + MemWrite(1) + MemToReg(2) = 4 bits
-    // Total = 105 bits
+    // Total = 108 bits
     //
 
-    PipelineRegister #(105) ex_mem_reg (
+    PipelineRegister #(108) ex_mem_reg (
         .clk(clk),
         .rst(rst),
         .en(1'b1),    // Always enable
@@ -295,13 +300,13 @@ module PipelinedCPU (
             id_ex_rd,           // The destination register address
             id_ex_pc_plus_4,    // For JAL/JALR linking
             // Control Payload
-            id_ex_reg_write, id_ex_mem_write, id_ex_mem_to_reg
+            id_ex_reg_write, id_ex_mem_write, id_ex_mem_to_reg, id_ex_funct3
         }),
         .out({
             // Data Payload
             ex_mem_alu_result, ex_mem_write_data, ex_mem_rd, ex_mem_pc_plus_4,
             // Control Payload
-            ex_mem_reg_write, ex_mem_mem_write, ex_mem_mem_to_reg
+            ex_mem_reg_write, ex_mem_mem_write, ex_mem_mem_to_reg, ex_mem_funct3
         })
     );
 
@@ -313,9 +318,11 @@ module PipelinedCPU (
     DataMemory data_memory_inst (
         .clk(clk),
         .MemWrite(ex_mem_mem_write),    // Write enable from EX/MEM reg
+        .funct3(ex_mem_funct3),         // Funct3 for byte/half/word access
         .Address(ex_mem_alu_result),    // Address from ALU result
         .WriteData(ex_mem_write_data),  // Data to write (from rs2)
-        .ReadData(mem_read_data)        // Output: Data read from memory
+        .ReadData(mem_read_data),        // Output: Data read from memory
+        .leds_out(leds_out)             // Output: LED control signals
     );
 
     // MEM/WB PIPELINE REGISTER:
