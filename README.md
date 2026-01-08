@@ -53,16 +53,20 @@ Phase 2: 5-Stage Pipelining (Completed)
 - [x] **Forwarding Unit:** Implement operand forwarding to resolve hazards without stalling.
 - [x] **Hazard Unit:** Detect data hazards and insert bubbles (stalls).
 
-Phase 3: Put it on an FPGA (In-progress)
+Phase 3: ISA Completeness (Completed)
 
-- [ ] Implement MMIO
-- [ ] Create FPGA Wrapper
-- [ ] Synthesis on Vivado WebPACK
-- [ ] Run a Blinky ASM program
+- [x] **Large Constants:** Implemented LUI & AUIPC to support 32-bit address generation (essential for C pointers).
+- [x] **Basic MMIO:** Implemented Memory-Mapped I/O at 0x80000000 for LED control.
 
-Phase 4: External Memory Interface (Future)
+Phase 4: C-Readiness & Hardening (Current)
 
-- [ ] Implement a Simple Bus Interface
+- [ ] Complex Branching: Implement BNE, BLT, BGE to support if/else logic.
+- [ ] Compliance: Run extensive simulation tests to verify corner cases.
+
+Phase 5: FPGA & Peripherals (Future)
+
+- [ ] UART: Implement Serial Transmit (MMIO) for printf support.
+- [ ] Physical Constraints: Map pins to the specific FPGA board.
 
 ## References
 
