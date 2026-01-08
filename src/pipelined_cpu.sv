@@ -25,6 +25,7 @@ module PipelinedCPU (
     logic        id_reg_write, id_mem_write;
     logic [3:0]  id_alu_control;
     logic        id_alu_src;
+    logic [1:0]  id_alu_src_a;
     logic [1:0]  id_mem_to_reg;
     logic        id_branch, id_jump, id_jalr;
 
@@ -37,6 +38,7 @@ module PipelinedCPU (
     logic        id_ex_reg_write, id_ex_mem_write;
     logic [3:0]  id_ex_alu_control;
     logic        id_ex_alu_src;
+    logic [1:0]  id_ex_alu_src_a;
     logic [1:0]  id_ex_mem_to_reg;
     logic        id_ex_branch, id_ex_jump, id_ex_jalr;
 
@@ -72,6 +74,7 @@ module PipelinedCPU (
     // FORWARDING UNIT
     logic [1:0]  forward_a, forward_b; // MUX selectors from ForwardingUnit
     logic [31:0] alu_in_a, alu_in_b;   // The actual data entering the ALU
+    logic [31:0] alu_in_a_forwarded;   // Intermediate wire for MUX
 
     // HAZARD UNIT
     logic stall_if, stall_id, flush_ex, flush_id;
@@ -150,6 +153,7 @@ module PipelinedCPU (
         .funct7(id_funct7),
         .RegWrite(id_reg_write),
         .ALUControl(id_alu_control),
+        .ALUSrcA(id_alu_src_a),
         .ALUSrc(id_alu_src),
         .MemWrite(id_mem_write),
         .MemToReg(id_mem_to_reg),
@@ -195,11 +199,11 @@ module PipelinedCPU (
     // Total Width Calculation:
     // This register captures all data and control signals needed for the EX stage.
     // Data: PC(32) + PC+4(32) + ReadData1(32) + ReadData2(32) + Imm(32) + rs1(5) + rs2(5) + rd(5) + funct3(3) = 178 bits
-    // Control: RegWrite(1) + MemWrite(1) + ALUControl(4) + ALUSrc(1) + MemToReg(2) + Branch(1) + Jump(1) + Jalr(1) = 12 bits
-    // Total = 190 bits
+    // Control: RegWrite(1) + MemWrite(1) + ALUControl(4) + ALUSrc(1) + ALUSrcA(2) + MemToReg(2) + Branch(1) + Jump(1) + Jalr(1) = 14 bits
+    // Total = 192 bits
     //
 
-    PipelineRegister #(190) id_ex_reg (
+    PipelineRegister #(192) id_ex_reg (
         .clk(clk),
         .rst(rst),
         .en(1'b1),        // Always enable ID/EX register
@@ -211,7 +215,7 @@ module PipelinedCPU (
             id_rs1, id_rs2, id_rd, id_funct3,
             // Control Payload
             id_reg_write, id_mem_write,
-            id_alu_control, id_alu_src, id_mem_to_reg, 
+            id_alu_control, id_alu_src, id_alu_src_a, id_mem_to_reg, 
             id_branch, id_jump, id_jalr
         }),
         .out({
@@ -221,7 +225,7 @@ module PipelinedCPU (
             id_ex_rs1, id_ex_rs2, id_ex_rd, id_ex_funct3,
             // Control Payload
             id_ex_reg_write, id_ex_mem_write,
-            id_ex_alu_control, id_ex_alu_src, id_ex_mem_to_reg, 
+            id_ex_alu_control, id_ex_alu_src, id_ex_alu_src_a, id_ex_mem_to_reg, 
             id_ex_branch, id_ex_jump, id_ex_jalr
         })
     );
@@ -242,28 +246,37 @@ module PipelinedCPU (
         .forward_b(forward_b)
     );
 
-    // --- ALU Input A MUX ---
+    // --- 1. ALU Input A MUX ---
     always_comb begin
         case (forward_a)
-            2'b00: alu_in_a = id_ex_read_data1;    // No forwarding (reg file)
-            2'b10: alu_in_a = ex_mem_alu_result;   // Forward from EX stage
-            2'b01: alu_in_a = wb_write_data;       // Forward from WB stage
-            default: alu_in_a = id_ex_read_data1;
+            2'b00: alu_in_a_forwarded = id_ex_read_data1;    // No forwarding (reg file)
+            2'b10: alu_in_a_forwarded = ex_mem_alu_result;   // Forward from EX stage
+            2'b01: alu_in_a_forwarded = wb_write_data;       // Forward from WB stage
+            default: alu_in_a_forwarded = id_ex_read_data1;
         endcase
     end
 
-    // --- ALU Input B MUX ---
-    // This determines the value *before* the ALUSrc MUX
+    // --- 2. Handle LUI/AUIPC Instruction Type MUX --- 
+    always_comb begin
+        case (id_ex_alu_src_a)
+            2'b00: alu_in_a = alu_in_a_forwarded;       // Normal (Register/Forwarded)
+            2'b01: alu_in_a = id_ex_pc;                 // PC (for AUIPC)
+            2'b10: alu_in_a = 32'd0;                    // Zero (for LUI)
+            default: alu_in_a = alu_in_a_forwarded;
+        endcase
+    end
+
+    // --- 3. ALU Input B MUX ---
     always_comb begin
         case (forward_b)
-            2'b00: alu_in_b = id_ex_read_data2;    // No forwarding (reg file)
-            2'b10: alu_in_b = ex_mem_alu_result;   // Forward from EX stage
-            2'b01: alu_in_b = wb_write_data;       // Forward from WB stage
+            2'b00: alu_in_b = id_ex_read_data2;       // No forwarding (reg file)
+            2'b10: alu_in_b = ex_mem_alu_result;      // Forward from EX stage
+            2'b01: alu_in_b = wb_write_data;          // Forward from WB stage
             default: alu_in_b = id_ex_read_data2;
         endcase
     end
 
-    // --- ALU Source MUX (Immediate vs Register) ---
+    // --- 4. ALU Source MUX (Immediate vs Register) ---
     // Uses 'alu_in_b' (the forwarded value) instead of 'id_ex_read_data2'
     assign ex_alu_b_input = (id_ex_alu_src == 1'b0) ? alu_in_b : id_ex_imm;
 

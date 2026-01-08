@@ -1,0 +1,74 @@
+---
+config:
+  theme: redux-dark
+  look: neo
+  layout: elk
+---
+flowchart LR
+ subgraph s1["IF Stage"]
+        n6["Instruction Memory<br>"]
+        n7["PC<br>"]
+  end
+ subgraph s2["Next PC Logic"]
+        n27["Priority MUX"]
+  end
+ subgraph s3["ImmGen"]
+        n19(["MUX"])
+  end
+ subgraph s4["ALU"]
+        n22["ALU"]
+        n25(["MUX"])
+  end
+ subgraph s5["WriteBack"]
+        n26(["MUX"])
+  end
+ subgraph s6["Registers"]
+        n15["Register File"]
+  end
+    n9["rst"] --> s1
+    n8["clock"] --> s1
+    s1 --> n23["PC"] & n24["PC+4"]
+    n25 --> n22
+    n27 -- Next PC --> s1
+    n11["Control Unit"] -- RegWrite --> s6
+    s5 -- WriteData --> s6
+    n11 -- ALUSrc --> s4
+    n23 --> s2
+    n24 --> s5
+    n11 -- MemWrite --> n29["Data Memory"]
+    n11 -- ALUControl --> s4
+    n11 -- MemToReg --> s5
+    n11 -- Branch/Jump/Jalr --> s2
+    n29 -- MemReadData --> s5
+    s4 -- ALUResult --> s2 & n29 & s5
+    s4 -- ALUZero --> s2
+    s3 -- ImmGenOut --> s2 & s4
+    s6 -- ReadData1 --> s4
+    s6 -- ReadData2 --> n29 & s4
+    s1 -- funct3 --> n11
+    s1 -- funct7 --> n11
+    s1 -- opcode --> n11
+    s1 -- Instruction --> s3
+    s1 -- rs1 --> s6
+    s1 -- rs2 --> s6
+    s1 -- rd --> s6
+
+    n6@{ shape: rect}
+    n7@{ shape: rect}
+    n27@{ shape: rounded}
+    n22@{ shape: trap-b}
+    n15@{ shape: rect}
+    n9@{ shape: text}
+    n8@{ shape: text}
+    n23@{ shape: text}
+    n24@{ shape: text}
+    n11@{ shape: rounded}
+    n29@{ shape: rect}
+    style n6 stroke:#FFFFFF,fill:#000000
+    style n7 stroke:#FFFFFF
+    style n27 stroke:#FFFFFF
+    style n9 fill:#616161
+    style s1 fill:transparent
+    style n8 fill:#616161,stroke:#616161
+    style n23 fill:#616161
+    style n24 fill:#616161

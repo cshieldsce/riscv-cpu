@@ -6,6 +6,7 @@ module ControlUnit (
     input logic [6:0] funct7,
     output logic RegWrite,
     output logic [3:0] ALUControl,
+    output logic [1:0] ALUSrcA,
     output logic ALUSrc,
     output logic MemWrite,
     output logic [1:0] MemToReg, // Select write-back data
@@ -18,6 +19,7 @@ module ControlUnit (
         // Default control signals
         RegWrite = 1'b0;
         ALUControl = 4'b0000;
+        ALUSrcA = 2'b00;
         ALUSrc = 1'b0;
         MemWrite = 1'b0;
         MemToReg = 2'b00;
@@ -105,7 +107,23 @@ module ControlUnit (
                 ALUControl = ALU_ADD; // ALU calculates rs1 + imm
             end
 
+            // Handle U-type instructions (Load Upper Immediate)
+            OP_LUI: begin
+                RegWrite = 1'b1;
+                ALUSrcA = 2'b10; // Input A = Zero
+                ALUSrc = 1'b1;   // Input B = Immediate
+                MemToReg = 2'b00; // Write ALUResult to RegFile
+                ALUControl = ALU_ADD; // Result = 0 + imm
+            end
+
+            // Handle U-type instructions (Add Upper Immediate to PC)
+            OP_AUIPC: begin
+                RegWrite = 1'b1;
+                ALUSrcA = 2'b01; // Input A = PC
+                ALUSrc = 1'b1;   // Input B = Immediate
+                MemToReg = 2'b00; // Write ALUResult to RegFile
+                ALUControl = ALU_ADD; // Result = PC + imm
+            end
         endcase
     end
-
 endmodule

@@ -1,0 +1,24 @@
+// Test LUI (Load Upper Immediate)
+// LUI writes the 20-bit immediate into bits [31:12] of the destination register.
+// The lower 12 bits are zeroed.
+
+// 1. lui x1, 0x12345
+//    Binary: 0001 0010 0011 0100 0101 (20 bits)
+//    Instruction: 12345 + 080 (rd=1, opcode=0110111) -> 123450B7
+123450B7
+
+// 2. addi x2, x1, 1 
+//    To verify we can actually USE the value in x1 immediately (Forwarding check)
+//    x2 should become 0x12345001
+00108113
+
+// 3. sw x2, 0(x0)
+//    Store result to memory for verification
+00202023
+
+// Pad with NOPs
+00000013
+00000013
+00000013
+@3F
+00000000
