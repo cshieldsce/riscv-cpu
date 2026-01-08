@@ -17,79 +17,88 @@ module DataMemory (
     logic [31:0] word_addr;
     logic [1:0]  byte_offset;
 
+    logic [31:0] mem_read_word;
+    
+    // 1. Extract the word from memory purely with combinational logic
+    assign mem_read_word = (word_addr < 1024) ? ram_memory[word_addr] : 32'b0;
+
     assign word_addr = {2'b0, Address[31:2]}; // Word-aligned address
     assign byte_offset = Address[1:0];        // Byte offset within the word
+    assign leds_out = led_reg;
 
-    // --- READ ---
-    assign ReadData = (word_addr < 1024) ? ram_memory[word_addr] : 32'b0;
-    always_comb begin
-        ReadData = 32'b0; // Default
+    // --- READ LOGIC ---
+    always @(*) begin   // Changed to 'always @(*)' to fix Icarus compiler error
+        ReadData = 32'b0; 
         if (word_addr < 1024) begin
-            logic [31:0] raw_word;
-            raw_word = ram_memory[word_addr];
             case (funct3)
                 F3_BYTE: begin // Load Byte (lb)
                     case (byte_offset)
-                        2'b00: ReadData = {{24{raw_word[7]}}, raw_word[7:0]};
-                        2'b01: ReadData = {{24{raw_word[15]}}, raw_word[15:8]};
-                        2'b10: ReadData = {{24{raw_word[23]}}, raw_word[23:16]};
-                        2'b11: ReadData = {{24{raw_word[31]}}, raw_word[31:24]};
+                        2'b00: ReadData = {{24{mem_read_word[7]}},  mem_read_word[7:0]};
+                        2'b01: ReadData = {{24{mem_read_word[15]}}, mem_read_word[15:8]};
+                        2'b10: ReadData = {{24{mem_read_word[23]}}, mem_read_word[23:16]};
+                        2'b11: ReadData = {{24{mem_read_word[31]}}, mem_read_word[31:24]};
                     endcase
                 end
                 F3_HALF: begin // Load Half-word (lh)
                     case (byte_offset[1])
-                        1'b0: ReadData = {{16{raw_word[15]}}, raw_word[15:0]};
-                        1'b1: ReadData = {{16{raw_word[31]}}, raw_word[31:16]};
+                        1'b0: ReadData = {{16{mem_read_word[15]}}, mem_read_word[15:0]};
+                        1'b1: ReadData = {{16{mem_read_word[31]}}, mem_read_word[31:16]};
                     endcase
                 end
                 F3_BU: begin // Load Byte Unsigned (lbu)
                     case (byte_offset)
-                        2'b00: ReadData = {24'b0, raw_word[7:0]};
-                        2'b01: ReadData = {24'b0, raw_word[15:8]};
-                        2'b10: ReadData = {24'b0, raw_word[23:16]};
-                        2'b11: ReadData = {24'b0, raw_word[31:24]};
+                        2'b00: ReadData = {24'b0, mem_read_word[7:0]};
+                        2'b01: ReadData = {24'b0, mem_read_word[15:8]};
+                        2'b10: ReadData = {24'b0, mem_read_word[23:16]};
+                        2'b11: ReadData = {24'b0, mem_read_word[31:24]};
                     endcase
                 end
                 F3_HU: begin // Load Half-word Unsigned (lhu)
                     case (byte_offset[1])
-                        1'b0: ReadData = {16'b0, raw_word[15:0]};
-                        1'b1: ReadData = {16'b0, raw_word[31:16]};
+                        1'b0: ReadData = {16'b0, mem_read_word[15:0]};
+                        1'b1: ReadData = {16'b0, mem_read_word[31:16]};
                     endcase
                 end
                 default: begin // Load Word (lw)
-                    ReadData = raw_word;
+                    ReadData = mem_read_word;
                 end
-    
-    assign leds_out = led_reg;
+            endcase
+        end
+    end
 
-    // --- WRITE ---
-    always_ff @( posedge clk ) begin
+    // --- WRITE LOGIC ---
+    logic [31:0] new_word;
+
+    always @(posedge clk) begin
         if (MemWrite) begin
-            // 1. MMIO: Writing to 0x80000000 controls LEDs
+            // 1. MMIO
             if (Address == 32'h8000_0000) begin
-                led_reg <= WriteData[3:0]; // Update only lower 4 bits for LEDs
+                led_reg <= WriteData[3:0]; 
             end
-            // 2. Normal RAM: Handle Sizes
+            // 2. RAM
             else if (word_addr < 1024) begin
+                new_word = mem_read_word; // Initialize new_word with current memory value
                 case (funct3)
-                    F3_BYTE: begin // Store Byte (sb)
+                    F3_BYTE: begin 
                         case (byte_offset)
-                            2'b00: ram_memory[word_addr][7:0]   <= WriteData[7:0];
-                            2'b01: ram_memory[word_addr][15:8]  <= WriteData[7:0];
-                            2'b10: ram_memory[word_addr][23:16] <= WriteData[7:0];
-                            2'b11: ram_memory[word_addr][31:24] <= WriteData[7:0];
+                            2'b00: new_word = {mem_read_word[31:8], WriteData[7:0]};
+                            2'b01: new_word = {mem_read_word[31:16], WriteData[7:0], mem_read_word[7:0]};
+                            2'b10: new_word = {mem_read_word[31:24], WriteData[7:0], mem_read_word[15:0]};
+                            2'b11: new_word = {WriteData[7:0], mem_read_word[23:0]};
                         endcase
                     end
-                    F3_HALF: begin // Store Half-word (sh)
+                    F3_HALF: begin 
                         case (byte_offset[1])
-                            1'b0: ram_memory[word_addr][15:0] <= WriteData[15:0];
-                            1'b1: ram_memory[word_addr][31:16] <= WriteData[15:0];
+                            1'b0: new_word = {mem_read_word[31:16], WriteData[15:0]};
+                            1'b1: new_word = {WriteData[15:0], mem_read_word[15:0]};
                         endcase
                     end
-                    default: begin // Store Word (sw)
-                        ram_memory[word_addr] <= WriteData; // Write a full word (4 bytes)
+                    default: begin 
+                        new_word = WriteData; 
                     end
                 endcase
+                
+                ram_memory[word_addr] <= new_word; 
             end
         end
     end
