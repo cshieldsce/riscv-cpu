@@ -9,6 +9,7 @@ module ImmGen (
     logic [31:0] imm_S; // For S-type (sw)
     logic [31:0] imm_B; // For B-type (beq)
     logic [31:0] imm_J; // For J-type (jal)
+    logic [31:0] imm_U; // For U-type (lui, auipc)
 
     // I-type Immediate 
     // Immediate is bits [31:20]. Sign-extend from bit [31].
@@ -35,6 +36,10 @@ module ImmGen (
                     instruction[30:21],
                     1'b0};
 
+    // U-Type Immediate (LUI, AUIPC)
+    // Immediate is bits [31:12] shifted left by 12 bits
+    assign imm_U = {instruction[31:12], 12'b0};
+
     // Output mux based on opcode
     always_comb begin
         case (opcode)
@@ -48,9 +53,12 @@ module ImmGen (
                 imm_out = imm_B;
             OP_JAL: // J-type (jal)
                 imm_out = imm_J;
-            default:
-                imm_out = 32'd0; // Default case
+            OP_LUI: // U-type (lui)
+                imm_out = imm_U;
+            OP_AUIPC: // U-type (auipc)
+                imm_out = imm_U;
+            default: // Default case
+                imm_out = 32'd0; 
         endcase
     end
-
 endmodule
