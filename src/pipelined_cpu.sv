@@ -125,7 +125,7 @@ module PipelinedCPU (
             next_pc = if_pc; // STALL: Keep the same PC
         end else if (id_ex_jalr) begin
             next_pc = ex_alu_result; // JALR Target
-        end else if ((id_ex_branch & ex_zero) || id_ex_jump) begin
+        end else if (branch_taken || id_ex_jump) begin
             next_pc = ex_branch_target; // Branch/JAL Target
         end else begin
             next_pc = if_pc_plus_4; // Normal: PC + 4
