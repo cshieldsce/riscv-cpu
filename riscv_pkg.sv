@@ -40,4 +40,14 @@ package riscv_pkg;
         F3_AND   = 3'b111  // and, andi
     } funct3_mem_t;
 
+    // --- FUNCT3 CODES (Branch Instructions) ---
+    typedef enum logic [2:0] {
+        F3_BEQ  = 3'b000,
+        F3_BNE  = 3'b001,
+        F3_BLT  = 3'b100,
+        F3_BGE  = 3'b101,
+        F3_BLTU = 3'b110,
+        F3_BGEU = 3'b111
+    } funct3_branch_t;
+
 endpackage

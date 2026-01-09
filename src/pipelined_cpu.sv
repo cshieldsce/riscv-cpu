@@ -1,4 +1,5 @@
 // 5-Stage Pipelined RISC-V CPU Top-Level
+import riscv_pkg::*;
 module PipelinedCPU (
     input logic clk,
     input logic rst,
@@ -90,9 +91,33 @@ module PipelinedCPU (
 
     logic [31:0] next_pc; // Wire for the next PC address
 
+    // --- Branch Decision Logic ---
+    logic alu_lsb;
+    assign alu_lsb = ex_alu_result[0];
+    logic branch_taken;
+
+    always @(*) begin
+        branch_taken = 1'b0;
+        
+        if (id_ex_branch) begin
+            case (id_ex_funct3)
+                F3_BEQ:  branch_taken = ex_zero;      // BEQ
+                F3_BNE:  branch_taken = ~ex_zero;     // BNE
+                
+                // --- FIX 3: Use the helper wire 'alu_lsb' here ---
+                F3_BLT:  branch_taken = alu_lsb;      // BLT (SLT result is 1)
+                F3_BGE:  branch_taken = ~alu_lsb;     // BGE (!SLT)
+                F3_BLTU: branch_taken = alu_lsb;      // BLTU
+                F3_BGEU: branch_taken = ~alu_lsb;     // BGEU
+                
+                default: branch_taken = 1'b0;
+            endcase
+        end
+    end
+
     // 1. Determine if a branch/jump is taken
-    // PCSrc is high if: (Branch is taken) OR (Jump instruction)
-    assign pcsrc = (id_ex_branch & ex_zero) | id_ex_jump | id_ex_jalr;
+    // PCSrc is high if: (Branch condition met) OR (Jump instruction)
+    assign pcsrc = branch_taken | id_ex_jump | id_ex_jalr;
 
     // 2. Next PC Mux
     always_comb begin

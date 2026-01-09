@@ -1,0 +1,34 @@
+// Initialization
+00a00093 // addi x1, x0, 10
+01400113 // addi x2, x0, 20
+
+// ---------------------------------------------------
+// Test 1: BNE (Branch Not Equal)
+// x1 (10) != x2 (20), so this SHOULD branch to 'pass_bne'
+00209463 // bne x1, x2, +8 (skip next instruction)
+00000013 // fail_bne: nop (If we execute this, BNE failed)
+00100193 // pass_bne: addi x3, x0, 1 (Marker x3=1)
+
+// ---------------------------------------------------
+// Test 2: BEQ (Branch Equal)
+// x1 (10) != x2 (20), so this SHOULD NOT branch
+00208463 // beq x1, x2, +8 (skip next instruction)
+00200213 // pass_beq: addi x4, x0, 2 (Marker x4=2, executes if BEQ falls through)
+00000013 // fail_beq: nop (jump target, shouldn't reach here)
+
+// ---------------------------------------------------
+// Test 3: BLT (Branch Less Than)
+// x1 (10) < x2 (20), so this SHOULD branch
+0020c463 // blt x1, x2, +8
+00000013 // fail_blt: nop
+00300293 // pass_blt: addi x5, x0, 3 (Marker x5=3)
+
+// ---------------------------------------------------
+// Test 4: BGE (Branch Greater/Equal)
+// x1 (10) >= x2 (20) is FALSE. Should NOT branch.
+0020d463 // bge x1, x2, +8
+00400313 // pass_bge: addi x6, x0, 4 (Marker x6=4)
+00000013 // fail_bge: nop
+
+// End Loop
+0000006f // jal x0, 0 (infinite loop)

@@ -77,28 +77,38 @@ module ControlUnit (
                 ALUControl = ALU_ADD; // ALU calculates rs1 + imm
             end
 
-            // Handle S-type instructions (Store Word)
+            // Handle S-type instructions
             OP_STORE: begin
                 ALUSrc = 1'b1;       // Use Immediate for address offset
                 MemWrite = 1'b1;     // 'sw' writes to memory
                 ALUControl = ALU_ADD; // ALU calculates rs1 + imm
             end
 
-            // Handle B-type instructions (Branch Equal)
+            // Handle B-type instructions
             OP_BRANCH: begin
                 Branch = 1'b1;       // 'beq' instruction
                 ALUSrc = 1'b0;       // Use ReadData2
-                ALUControl = ALU_SUB; // ALU performs subtraction for comparison
+                MemToReg = 2'b00;
+                RegWrite = 1'b0;
+                MemWrite = 1'b0;
+                case (funct3)
+                    F3_BEQ:  ALUControl = ALU_SUB;  // Check if A - B == 0
+                    F3_BNE:  ALUControl = ALU_SUB;  // Check if A - B != 0
+                    F3_BLT:  ALUControl = ALU_SLT;  // Check if A < B (signed)
+                    F3_BGE:  ALUControl = ALU_SLT;  // Check if !(A < B) aka A >= B
+                    F3_BLTU: ALUControl = ALU_SLTU; // Check if A < B (unsigned)
+                    F3_BGEU: ALUControl = ALU_SLTU; // Check if !(A < B) (unsigned)
+                    default: ALUControl = ALU_SUB;
+                endcase            
             end
 
-            // Handle J-type instructions (Jump and Link)
+            // Handle J-type instructions
             OP_JAL: begin
                 RegWrite = 1'b1;  // 'jal' writes to a register
                 Jump = 1'b1;      // Indicate a jump instruction
                 MemToReg = 2'b10; // PC+4 for jal
             end
 
-            // Handle J-type instructions (Jump and Link Register)
             OP_JALR: begin
                 RegWrite = 1'b1;  // 'jalr' writes to a register
                 Jalr = 1'b1;      // Indicate a jump instruction
@@ -107,7 +117,7 @@ module ControlUnit (
                 ALUControl = ALU_ADD; // ALU calculates rs1 + imm
             end
 
-            // Handle U-type instructions (Load Upper Immediate)
+            // Handle U-type instructions
             OP_LUI: begin
                 RegWrite = 1'b1;
                 ALUSrcA = 2'b10; // Input A = Zero
@@ -116,8 +126,7 @@ module ControlUnit (
                 ALUControl = ALU_ADD; // Result = 0 + imm
             end
 
-            // Handle U-type instructions (Add Upper Immediate to PC)
-            OP_AUIPC: begin
+            OP_AUIPC: begin // Add Upper Immediate to PC
                 RegWrite = 1'b1;
                 ALUSrcA = 2'b01; // Input A = PC
                 ALUSrc = 1'b1;   // Input B = Immediate
