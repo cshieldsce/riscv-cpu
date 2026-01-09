@@ -2,6 +2,8 @@ module pipelined_cpu_tb;
 
     logic clk;
     logic rst;
+    
+    reg [255:0] test_file; 
 
     // Instantiate the Pipelined CPU
     PipelinedCPU cpu_inst (
@@ -19,10 +21,11 @@ module pipelined_cpu_tb;
 
     initial begin
         $dumpfile("waveform.vcd");
-        $dumpvars(0, pipelined_cpu_tb); // Dump this testbench
+        $dumpvars(0, pipelined_cpu_tb);
         
         $display("Loading Branch Test...");
-        reg [255:0] test_file;
+
+        // --- Logic uses the variable here ---
         if ($value$plusargs("TEST=%s", test_file)) begin
             $display("Loading Test: %0s", test_file);
             $readmemh(test_file, cpu_inst.if_stage_inst.imem_inst.rom_memory);
@@ -33,12 +36,13 @@ module pipelined_cpu_tb;
         end        
         
         // Reset and Run
-        rst = 1; repeat(2) @(posedge clk); rst = 0;
+        rst = 1;
+        repeat(2) @(posedge clk); rst = 0;
         
-        // Run enough cycles for all tests to complete
+        // Run enough cycles
         repeat(20) @(posedge clk);
 
-        // --- VERIFICATION ---
+        // ... Verification logic ...
         if (cpu_inst.reg_file_inst.register_memory[3] == 32'd1) $display("[PASS] BNE Test (x3=1)");
         else $display("[FAIL] BNE Test (x3=%d)", cpu_inst.reg_file_inst.register_memory[3]);
 

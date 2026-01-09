@@ -1,19 +1,26 @@
 import os
 import subprocess
 import sys
+import glob
 
 # Configuration
-SOURCE_FILES = ["riscv_pkg.sv", "src/*.sv", "test/pipelined_cpu_tb.sv"]
 OUTPUT_FILE = "sim.out"
 MEM_DIR = "mem"
 
 def compile_cpu():
     print("🔧 Compiling CPU...")
-    cmd = ["iverilog", "-g2012", "-o", OUTPUT_FILE] + SOURCE_FILES
-    # Expand wildcards for Windows/Linux compatibility if needed, 
-    # but iverilog handles *.sv in most shells. 
-    # For Python subprocess, we might need shell=True or globbing.
-    cmd_str = f"iverilog -g2012 -o {OUTPUT_FILE} riscv_pkg.sv src/*.sv test/pipelined_cpu_tb.sv"
+    
+    # 1. Manually find all .sv files in src/
+    src_files = glob.glob("src/*.sv")
+    
+    # 2. Construct the file list explicitly
+    # Order matters: Package first!
+    source_files = ["riscv_pkg.sv"] + src_files + ["test/pipelined_cpu_tb.sv"]
+    
+    # 3. Join them into the command string
+    cmd_str = f"iverilog -g2012 -o {OUTPUT_FILE} " + " ".join(source_files)
+    
+    print(f"Executing: {cmd_str}") # Debug print
     
     result = subprocess.run(cmd_str, shell=True, capture_output=True, text=True)
     
