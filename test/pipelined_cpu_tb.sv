@@ -22,7 +22,15 @@ module pipelined_cpu_tb;
         $dumpvars(0, pipelined_cpu_tb); // Dump this testbench
         
         $display("Loading Branch Test...");
-        $readmemh("mem/branch_test.mem", cpu_inst.if_stage_inst.imem_inst.rom_memory);
+        reg [255:0] test_file;
+        if ($value$plusargs("TEST=%s", test_file)) begin
+            $display("Loading Test: %0s", test_file);
+            $readmemh(test_file, cpu_inst.if_stage_inst.imem_inst.rom_memory);
+        end else begin
+            // Default fallback
+            $display("Loading Default: mem/branch_test.mem");
+            $readmemh("mem/branch_test.mem", cpu_inst.if_stage_inst.imem_inst.rom_memory);
+        end        
         
         // Reset and Run
         rst = 1; repeat(2) @(posedge clk); rst = 0;
