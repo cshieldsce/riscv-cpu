@@ -34,4 +34,4 @@ jobs:
     - name: Run Fibonacci Test (Optional)
       run: |
         # Ensure fib_test.mem exists and outputs PASS
-        vvp sim.out +TEST=mem/fib_test.mem 
+        vvp sim.out +TEST=mem/fib_test.mem | grep "PASS"
