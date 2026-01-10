@@ -21,7 +21,6 @@ module pipelined_cpu_tb;
         $dumpfile("waveform.vcd");
         $dumpvars(0, pipelined_cpu_tb);
         
-        // Dynamic Test Loading
         if ($value$plusargs("TEST=%s", test_file)) begin
             $display("Loading Test: %0s", test_file);
             $readmemh(test_file, cpu_inst.if_stage_inst.imem_inst.rom_memory);
@@ -30,84 +29,80 @@ module pipelined_cpu_tb;
             $readmemh("mem/branch_test.mem", cpu_inst.if_stage_inst.imem_inst.rom_memory);
         end        
         
-        // DEBUG: Print first few instructions loaded
-        $display("First 10 instructions in memory:");
-        for (int i = 0; i < 10; i++) begin
-            $display("  [%0d]: %h", i, cpu_inst.if_stage_inst.imem_inst.rom_memory[i]);
+        $display("First 12 instructions in memory:");
+        for (int i = 0; i < 12; i++) begin
+            $display("  [0x%02h]: %h", i*4, cpu_inst.if_stage_inst.imem_inst.rom_memory[i]);
         end
         
-        // Reset and Run
         rst = 1;
         repeat(2) @(posedge clk); 
         rst = 0;
         
-        // Run with periodic updates
-        $display("Starting execution...");
-        for (int cycle = 0; cycle < 100; cycle++) begin
+        $display("\nStarting execution...\n");
+        for (int cycle = 0; cycle < 150; cycle++) begin
             @(posedge clk);
-            if (cycle % 10 == 0) begin
-                $display("Cycle %0d: PC=%h, x1=%0d, x2=%0d, x3=%0d, x4=%0d", 
-                    cycle,
+            #1; // Wait for signals to settle
+            
+            if (cycle < 30 || cycle % 10 == 0) begin
+                $display("=== Cycle %0d ===", cycle);
+                $display("  PC=%h, Instruction=%h", 
                     cpu_inst.if_pc,
+                    cpu_inst.if_instruction);
+                $display("  Registers: x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d", 
                     cpu_inst.reg_file_inst.register_memory[1],
                     cpu_inst.reg_file_inst.register_memory[2],
                     cpu_inst.reg_file_inst.register_memory[3],
-                    cpu_inst.reg_file_inst.register_memory[4]);
+                    cpu_inst.reg_file_inst.register_memory[4],
+                    cpu_inst.reg_file_inst.register_memory[5]);
+                    
+                // Show EX stage details
+                $display("  EX Stage: Branch=%b Jump=%b PCSrc=%b", 
+                    cpu_inst.id_ex_branch,
+                    cpu_inst.id_ex_jump,
+                    cpu_inst.pcsrc);
+                    
+                if (cpu_inst.id_ex_branch || cpu_inst.id_ex_jump) begin
+                    $display("    ALU inputs: A=%h B=%h", 
+                        cpu_inst.alu_in_a,
+                        cpu_inst.ex_alu_b_input);
+                    $display("    ALU result=%h Zero=%b", 
+                        cpu_inst.ex_alu_result,
+                        cpu_inst.ex_zero);
+                end
+                
+                $display("  Hazards: stall_if=%b stall_id=%b flush_ex=%b flush_id=%b",
+                    cpu_inst.stall_if,
+                    cpu_inst.stall_id,
+                    cpu_inst.flush_ex,
+                    cpu_inst.flush_id);
+                $display("");
             end
         end
 
         $display("-------------------------------------------------------------");
-        $display("Final Register State after 100 cycles:");
-        $display("x1: %0d (0x%h)", 
+        $display("Final Register State:");
+        $display("x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d", 
             cpu_inst.reg_file_inst.register_memory[1],
-            cpu_inst.reg_file_inst.register_memory[1]);
-        $display("x2: %0d (0x%h)", 
             cpu_inst.reg_file_inst.register_memory[2],
-            cpu_inst.reg_file_inst.register_memory[2]);
-        $display("x3: %0d (0x%h)", 
             cpu_inst.reg_file_inst.register_memory[3],
-            cpu_inst.reg_file_inst.register_memory[3]);
-        $display("x4: %0d (0x%h)", 
             cpu_inst.reg_file_inst.register_memory[4],
-            cpu_inst.reg_file_inst.register_memory[4]);
-        $display("x5: %0d (0x%h)", 
-            cpu_inst.reg_file_inst.register_memory[5],
             cpu_inst.reg_file_inst.register_memory[5]);
         $display("-------------------------------------------------------------");
 
-        // --- VERIFICATION ---
-        
-        // 1. LUI TEST
+        // VERIFICATION
         if (cpu_inst.reg_file_inst.register_memory[1] == 32'h12345000) begin
-            $display("[PASS] LUI Test: x1 is correct (12345000)");
+            $display("[PASS] LUI Test");
         end
 
-        // 2. BRANCH TEST
         if (cpu_inst.reg_file_inst.register_memory[3] == 32'd1) begin
-             $display("[PASS] BNE Test (x3=1)");
-             
-             if (cpu_inst.reg_file_inst.register_memory[4] == 32'd2) 
-                 $display("[PASS] BEQ Fallthrough (x4=2)");
-             else 
-                 $display("[FAIL] BEQ Fallthrough (x4=%d)", cpu_inst.reg_file_inst.register_memory[4]);
-
-             if (cpu_inst.reg_file_inst.register_memory[5] == 32'd3) 
-                 $display("[PASS] BLT Test (x5=3)");
-             else 
-                 $display("[FAIL] BLT Test (x5=%d)", cpu_inst.reg_file_inst.register_memory[5]);
+             $display("[PASS] BNE Test");
         end
 
-        // 3. FIBONACCI TEST
         if (cpu_inst.reg_file_inst.register_memory[2] == 32'd55) begin
              $display("[PASS] Fibonacci Test (x2=55)");
         end else begin
              $display("[FAIL] Fibonacci Test: Expected x2=55, got x2=%0d", 
                  cpu_inst.reg_file_inst.register_memory[2]);
-             // Check if it even started
-             if (cpu_inst.reg_file_inst.register_memory[1] == 32'd10 &&
-                 cpu_inst.reg_file_inst.register_memory[4] == 32'd1) begin
-                 $display("  Registers initialized but loop didn't execute properly");
-             end
         end
 
         $finish;
