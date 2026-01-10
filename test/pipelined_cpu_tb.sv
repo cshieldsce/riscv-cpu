@@ -125,7 +125,7 @@ module pipelined_cpu_tb;
         end
 
         // 2. COMPLEX BRANCH TEST
-        else if (test_file == "mem/cbranch_test.mem") begin
+        else if (test_file == "mem/complex_branch_test.mem") begin
             // Check x3 (BNE Result)
             if (cpu_inst.reg_file_inst.register_memory[3] == 32'd1) 
                  $display("[PASS] BNE Test (x3=1)");
