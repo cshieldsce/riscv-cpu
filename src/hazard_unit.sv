@@ -13,8 +13,8 @@ module HazardUnit (
     // Outputs to Control Signals
     output logic stall_if,        // Freeze PC
     output logic stall_id,        // Freeze IF/ID register
-    output logic flush_ex,         // Flush EX/MEM register (insert NOP)
-    output logic flush_id        // Flush ID/EX register
+    output logic flush_ex,        // Flush ID/EX register (insert NOP)
+    output logic flush_id         // Flush IF/ID register
 );
 
     always_comb begin : HazardUnit
@@ -34,10 +34,17 @@ module HazardUnit (
         end
 
         // --- CONTROL HAZARD DETECTION ---
-        // If a branch or jump is taken, the instructions in IF and ID are from the wrong path.        
-        if (PCSrc) begin
-            flush_id = 1;   // Kill the instruction in Fetch/Decode register
-            flush_ex = 1;   // Kill the instruction in Decode/Execute register
+        // When PCSrc goes high, a branch/jump in EX stage has been taken.
+        // At this moment in the pipeline:
+        //   - IF/ID: Contains instruction from wrong path (fetched from PC+4 of branch)
+        //   - ID/EX: Contains the branch/jump itself OR instruction before it
+        //   - EX/MEM and beyond: Instructions that should complete
+        //
+        // We only flush IF/ID to kill the speculatively fetched instruction.
+        // We do NOT flush ID/EX because it may contain instructions that must complete.
+        else if (PCSrc) begin
+            flush_id = 1;   // Kill instruction in IF/ID (speculative fetch)
+                            // DO NOT flush ID/EX - let instructions complete naturally
         end
     end
 endmodule
