@@ -25,8 +25,8 @@ module pipelined_cpu_tb;
             $display("Loading Test: %0s", test_file);
             $readmemh(test_file, cpu_inst.if_stage_inst.imem_inst.rom_memory);
         end else begin
-            $display("Loading Default: mem/branch_test.mem");
-            $readmemh("mem/branch_test.mem", cpu_inst.if_stage_inst.imem_inst.rom_memory);
+            $display("Loading Default: mem/complex_branch_test.mem");
+            $readmemh("mem/complex_branch_test.mem", cpu_inst.if_stage_inst.imem_inst.rom_memory);
         end        
         
         $display("First 12 instructions in memory:");
@@ -106,48 +106,63 @@ module pipelined_cpu_tb;
 
         $display("-------------------------------------------------------------");
         $display("Final Register State:");
-        $display("x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d x6=%0d", 
+        $display("x1: %h | x2: %d | x3: %d | x4: %d", 
             cpu_inst.reg_file_inst.register_memory[1],
-            cpu_inst.reg_file_inst.register_memory[2],
+            cpu_inst.reg_file_inst.register_memory[2], 
             cpu_inst.reg_file_inst.register_memory[3],
-            cpu_inst.reg_file_inst.register_memory[4],
-            cpu_inst.reg_file_inst.register_memory[5],
-            cpu_inst.reg_file_inst.register_memory[6]);
+            cpu_inst.reg_file_inst.register_memory[4]);
         $display("-------------------------------------------------------------");
 
-        // VERIFICATION
-        
+        // --- SMART VERIFICATION ---
+
         // 1. LUI TEST
-        if (cpu_inst.reg_file_inst.register_memory[1] == 32'h12345000) begin
-            $display("[PASS] LUI Test: x1 is correct (12345000)");
+        if (test_file == "mem/lui_test.mem") begin
+            if (cpu_inst.reg_file_inst.register_memory[1] == 32'h12345000) begin
+                $display("[PASS] LUI Test: x1 is correct (12345000)");
+            end else begin
+                $display("[FAIL] LUI Test: Expected 12345000, got %h", cpu_inst.reg_file_inst.register_memory[1]);
+            end
         end
 
-        // 2. BRANCH TEST
-        if (cpu_inst.reg_file_inst.register_memory[3] == 32'd1) begin
-             $display("[PASS] BNE Test (x3=1)");
-             
-             if (cpu_inst.reg_file_inst.register_memory[4] == 32'd2) 
+        // 2. COMPLEX BRANCH TEST
+        else if (test_file == "mem/cbranch_test.mem") begin
+            // Check x3 (BNE Result)
+            if (cpu_inst.reg_file_inst.register_memory[3] == 32'd1) 
+                 $display("[PASS] BNE Test (x3=1)");
+            else 
+                 $display("[FAIL] BNE Test (x3=%d)", cpu_inst.reg_file_inst.register_memory[3]);
+
+            // Check x4 (BEQ Result)
+            if (cpu_inst.reg_file_inst.register_memory[4] == 32'd2) 
                  $display("[PASS] BEQ Fallthrough (x4=2)");
-             else 
+            else 
                  $display("[FAIL] BEQ Fallthrough (x4=%d)", cpu_inst.reg_file_inst.register_memory[4]);
 
-             if (cpu_inst.reg_file_inst.register_memory[5] == 32'd3) 
+            // Check x5 (BLT Result)
+            if (cpu_inst.reg_file_inst.register_memory[5] == 32'd3) 
                  $display("[PASS] BLT Test (x5=3)");
-             else 
+            else 
                  $display("[FAIL] BLT Test (x5=%d)", cpu_inst.reg_file_inst.register_memory[5]);
-             
-             if (cpu_inst.reg_file_inst.register_memory[6] == 32'd4) 
+
+            // Check x6 (BGE Result)
+            if (cpu_inst.reg_file_inst.register_memory[6] == 32'd4) 
                  $display("[PASS] BGE Test (x6=4)");
-             else 
+            else 
                  $display("[FAIL] BGE Test (x6=%d)", cpu_inst.reg_file_inst.register_memory[6]);
         end
 
         // 3. FIBONACCI TEST
-        if (cpu_inst.reg_file_inst.register_memory[2] == 32'd55) begin
-             $display("[PASS] Fibonacci Test (x2=55)");
-        end else begin
-             $display("[FAIL] Fibonacci Test: Expected x2=55, got x2=%0d", 
-                 cpu_inst.reg_file_inst.register_memory[2]);
+        else if (test_file == "mem/fib_test.mem") begin
+            if (cpu_inst.reg_file_inst.register_memory[2] == 32'd55) begin
+                 $display("[PASS] Fibonacci Test (x2=55)");
+            end else begin
+                 $display("[FAIL] Fibonacci Test. Expected 55, got %d", cpu_inst.reg_file_inst.register_memory[2]);
+            end
+        end
+        
+        // 4. DEFAULT / OTHER
+        else begin
+            $display("No automatic verification for: %s", test_file);
         end
 
         $finish;

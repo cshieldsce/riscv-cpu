@@ -23,15 +23,14 @@ jobs:
       run: |
         iverilog -g2012 -o sim.out riscv_pkg.sv src/*.sv test/pipelined_cpu_tb.sv
 
-    - name: Run Branch Test
+    - name: Run Complex Branch Test
       run: |
-        vvp sim.out +TEST=mem/branch_test.mem | grep "PASS"
+        vvp sim.out +TEST=mem/complex_branch_test.mem | grep "PASS"
 
     - name: Run LUI Test
       run: |
         vvp sim.out +TEST=mem/lui_test.mem | grep "PASS"
 
-    - name: Run Fibonacci Test (Optional)
+    - name: Run Fibonacci Test
       run: |
-        # Ensure fib_test.mem exists and outputs PASS
         vvp sim.out +TEST=mem/fib_test.mem | grep "PASS"

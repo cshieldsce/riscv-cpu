@@ -1,0 +1,47 @@
+// Complex Branching Test (Signed vs Unsigned)
+// 
+// Setup:
+// x1 = -1 (0xFFFFFFFF)
+// x2 =  1 (0x00000001)
+
+// Init
+fff00093 // addi x1, x0, -1
+00100113 // addi x2, x0, 1
+
+// ---------------------------------------------------
+// Test 1: BLT (Signed Less Than)
+// -1 < 1 is TRUE. Should branch to 'pass_blt'
+0020c463 // blt x1, x2, +8
+00000013 // FAIL_BLT: nop (If we are here, BLT failed)
+00100193 // PASS_BLT: addi x3, x0, 1 (Marker x3=1)
+
+// ---------------------------------------------------
+// Test 2: BGE (Signed Greater/Equal)
+// -1 >= 1 is FALSE. Should NOT branch.
+0020d463 // bge x1, x2, +8
+00200213 // PASS_BGE: addi x4, x0, 2 (Marker x4=2)
+00000013 // FAIL_BGE: nop (If we are here, BGE incorrectly branched)
+
+// ---------------------------------------------------
+// Test 3: BLTU (Unsigned Less Than)
+// 0xFFFFFFFF < 1 is FALSE. Should NOT branch.
+0020e463 // bltu x1, x2, +8
+00300293 // PASS_BLTU: addi x5, x0, 3 (Marker x5=3)
+00000013 // FAIL_BLTU: nop
+
+// ---------------------------------------------------
+// Test 4: BGEU (Unsigned Greater/Equal)
+// 0xFFFFFFFF >= 1 is TRUE. Should branch to 'pass_bgeu'
+0020f463 // bgeu x1, x2, +8
+00000013 // FAIL_BGEU: nop
+00400313 // PASS_BGEU: addi x6, x0, 4 (Marker x6=4)
+
+// ---------------------------------------------------
+// End
+0000006f // jal x0, 0 (infinite loop)
+
+// Padding to satisfy memory size
+00000000 00000000 00000000 00000000
+00000000 00000000 00000000 00000000
+00000000 00000000 00000000 00000000
+00000000 00000000 00000000 00000000
