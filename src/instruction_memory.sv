@@ -8,7 +8,9 @@ module InstructionMemory (
 
     // Initialize memory
     initial begin
-        $readmemh("mem/lui_test.mem", rom_memory); //Load file into rom_memory
+        for (int i = 0; i < 64; i = i + 1) begin
+            rom_memory[i] = 32'h00000013; // NOP instruction
+        end
     end
 
     // Combinational read logic
