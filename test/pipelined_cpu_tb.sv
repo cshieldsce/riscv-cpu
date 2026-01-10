@@ -39,66 +39,110 @@ module pipelined_cpu_tb;
         rst = 0;
         
         $display("\nStarting execution...\n");
-        for (int cycle = 0; cycle < 15; cycle++) begin
+        
+        // Run with detailed output for first 15 cycles, then sparse output
+        for (int cycle = 0; cycle < 150; cycle++) begin
             @(posedge clk);
             #1; // Wait for signals to settle
             
-            $display("=== Cycle %0d ===", cycle);
-            $display("  PC=%h, Instruction=%h", 
-                cpu_inst.if_pc,
-                cpu_inst.if_instruction);
-            $display("  Registers: x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d", 
-                cpu_inst.reg_file_inst.register_memory[1],
-                cpu_inst.reg_file_inst.register_memory[2],
-                cpu_inst.reg_file_inst.register_memory[3],
-                cpu_inst.reg_file_inst.register_memory[4],
-                cpu_inst.reg_file_inst.register_memory[5]);
-                
-            // Show pipeline stages
-            $display("  Pipeline Stages:");
-            $display("    ID/EX: rs1=%0d rs2=%0d rd=%0d RegWrite=%b", 
-                cpu_inst.id_ex_rs1, 
-                cpu_inst.id_ex_rs2,
-                cpu_inst.id_ex_rd,
-                cpu_inst.id_ex_reg_write);
-            $display("    EX/MEM: rd=%0d RegWrite=%b ALUResult=%h", 
-                cpu_inst.ex_mem_rd,
-                cpu_inst.ex_mem_reg_write,
-                cpu_inst.ex_mem_alu_result);
-            $display("    MEM/WB: rd=%0d RegWrite=%b WriteData=%h", 
-                cpu_inst.mem_wb_rd,
-                cpu_inst.mem_wb_reg_write,
-                cpu_inst.wb_write_data);
-                
-            // Show forwarding
-            $display("  Forwarding: forward_a=%b forward_b=%b", 
-                cpu_inst.forward_a,
-                cpu_inst.forward_b);
-            $display("    ALU inputs: A=%h B=%h (before ALUSrc)", 
-                cpu_inst.alu_in_a,
-                cpu_inst.alu_in_b);
-            $display("    ALU result=%h", 
-                cpu_inst.ex_alu_result);
-                
-            $display("  Hazards: stall_if=%b stall_id=%b flush_ex=%b flush_id=%b",
-                cpu_inst.stall_if,
-                cpu_inst.stall_id,
-                cpu_inst.flush_ex,
-                cpu_inst.flush_id);
-            $display("");
+            // Detailed output for first 15 cycles
+            if (cycle < 15) begin
+                $display("=== Cycle %0d ===", cycle);
+                $display("  PC=%h, Instruction=%h", 
+                    cpu_inst.if_pc,
+                    cpu_inst.if_instruction);
+                $display("  Registers: x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d", 
+                    cpu_inst.reg_file_inst.register_memory[1],
+                    cpu_inst.reg_file_inst.register_memory[2],
+                    cpu_inst.reg_file_inst.register_memory[3],
+                    cpu_inst.reg_file_inst.register_memory[4],
+                    cpu_inst.reg_file_inst.register_memory[5]);
+                    
+                // Show pipeline stages
+                $display("  Pipeline Stages:");
+                $display("    ID/EX: rs1=%0d rs2=%0d rd=%0d RegWrite=%b", 
+                    cpu_inst.id_ex_rs1, 
+                    cpu_inst.id_ex_rs2,
+                    cpu_inst.id_ex_rd,
+                    cpu_inst.id_ex_reg_write);
+                $display("    EX/MEM: rd=%0d RegWrite=%b ALUResult=%h", 
+                    cpu_inst.ex_mem_rd,
+                    cpu_inst.ex_mem_reg_write,
+                    cpu_inst.ex_mem_alu_result);
+                $display("    MEM/WB: rd=%0d RegWrite=%b WriteData=%h", 
+                    cpu_inst.mem_wb_rd,
+                    cpu_inst.mem_wb_reg_write,
+                    cpu_inst.wb_write_data);
+                    
+                // Show forwarding
+                $display("  Forwarding: forward_a=%b forward_b=%b", 
+                    cpu_inst.forward_a,
+                    cpu_inst.forward_b);
+                $display("    ALU inputs: A=%h B=%h (before ALUSrc)", 
+                    cpu_inst.alu_in_a,
+                    cpu_inst.alu_in_b);
+                $display("    ALU result=%h", 
+                    cpu_inst.ex_alu_result);
+                    
+                $display("  Hazards: stall_if=%b stall_id=%b flush_ex=%b flush_id=%b",
+                    cpu_inst.stall_if,
+                    cpu_inst.stall_id,
+                    cpu_inst.flush_ex,
+                    cpu_inst.flush_id);
+                $display("");
+            end
+            // Sparse output every 10 cycles after that
+            else if (cycle % 10 == 0) begin
+                $display("Cycle %0d: PC=%h x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d", 
+                    cycle,
+                    cpu_inst.if_pc,
+                    cpu_inst.reg_file_inst.register_memory[1],
+                    cpu_inst.reg_file_inst.register_memory[2],
+                    cpu_inst.reg_file_inst.register_memory[3],
+                    cpu_inst.reg_file_inst.register_memory[4],
+                    cpu_inst.reg_file_inst.register_memory[5]);
+            end
         end
 
         $display("-------------------------------------------------------------");
         $display("Final Register State:");
-        $display("x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d", 
+        $display("x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d x6=%0d", 
             cpu_inst.reg_file_inst.register_memory[1],
             cpu_inst.reg_file_inst.register_memory[2],
             cpu_inst.reg_file_inst.register_memory[3],
             cpu_inst.reg_file_inst.register_memory[4],
-            cpu_inst.reg_file_inst.register_memory[5]);
+            cpu_inst.reg_file_inst.register_memory[5],
+            cpu_inst.reg_file_inst.register_memory[6]);
         $display("-------------------------------------------------------------");
 
         // VERIFICATION
+        
+        // 1. LUI TEST
+        if (cpu_inst.reg_file_inst.register_memory[1] == 32'h12345000) begin
+            $display("[PASS] LUI Test: x1 is correct (12345000)");
+        end
+
+        // 2. BRANCH TEST
+        if (cpu_inst.reg_file_inst.register_memory[3] == 32'd1) begin
+             $display("[PASS] BNE Test (x3=1)");
+             
+             if (cpu_inst.reg_file_inst.register_memory[4] == 32'd2) 
+                 $display("[PASS] BEQ Fallthrough (x4=2)");
+             else 
+                 $display("[FAIL] BEQ Fallthrough (x4=%d)", cpu_inst.reg_file_inst.register_memory[4]);
+
+             if (cpu_inst.reg_file_inst.register_memory[5] == 32'd3) 
+                 $display("[PASS] BLT Test (x5=3)");
+             else 
+                 $display("[FAIL] BLT Test (x5=%d)", cpu_inst.reg_file_inst.register_memory[5]);
+             
+             if (cpu_inst.reg_file_inst.register_memory[6] == 32'd4) 
+                 $display("[PASS] BGE Test (x6=4)");
+             else 
+                 $display("[FAIL] BGE Test (x6=%d)", cpu_inst.reg_file_inst.register_memory[6]);
+        end
+
+        // 3. FIBONACCI TEST
         if (cpu_inst.reg_file_inst.register_memory[2] == 32'd55) begin
              $display("[PASS] Fibonacci Test (x2=55)");
         end else begin
