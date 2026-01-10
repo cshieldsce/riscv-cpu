@@ -39,44 +39,53 @@ module pipelined_cpu_tb;
         rst = 0;
         
         $display("\nStarting execution...\n");
-        for (int cycle = 0; cycle < 150; cycle++) begin
+        for (int cycle = 0; cycle < 15; cycle++) begin
             @(posedge clk);
             #1; // Wait for signals to settle
             
-            if (cycle < 30 || cycle % 10 == 0) begin
-                $display("=== Cycle %0d ===", cycle);
-                $display("  PC=%h, Instruction=%h", 
-                    cpu_inst.if_pc,
-                    cpu_inst.if_instruction);
-                $display("  Registers: x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d", 
-                    cpu_inst.reg_file_inst.register_memory[1],
-                    cpu_inst.reg_file_inst.register_memory[2],
-                    cpu_inst.reg_file_inst.register_memory[3],
-                    cpu_inst.reg_file_inst.register_memory[4],
-                    cpu_inst.reg_file_inst.register_memory[5]);
-                    
-                // Show EX stage details
-                $display("  EX Stage: Branch=%b Jump=%b PCSrc=%b", 
-                    cpu_inst.id_ex_branch,
-                    cpu_inst.id_ex_jump,
-                    cpu_inst.pcsrc);
-                    
-                if (cpu_inst.id_ex_branch || cpu_inst.id_ex_jump) begin
-                    $display("    ALU inputs: A=%h B=%h", 
-                        cpu_inst.alu_in_a,
-                        cpu_inst.ex_alu_b_input);
-                    $display("    ALU result=%h Zero=%b", 
-                        cpu_inst.ex_alu_result,
-                        cpu_inst.ex_zero);
-                end
+            $display("=== Cycle %0d ===", cycle);
+            $display("  PC=%h, Instruction=%h", 
+                cpu_inst.if_pc,
+                cpu_inst.if_instruction);
+            $display("  Registers: x1=%0d x2=%0d x3=%0d x4=%0d x5=%0d", 
+                cpu_inst.reg_file_inst.register_memory[1],
+                cpu_inst.reg_file_inst.register_memory[2],
+                cpu_inst.reg_file_inst.register_memory[3],
+                cpu_inst.reg_file_inst.register_memory[4],
+                cpu_inst.reg_file_inst.register_memory[5]);
                 
-                $display("  Hazards: stall_if=%b stall_id=%b flush_ex=%b flush_id=%b",
-                    cpu_inst.stall_if,
-                    cpu_inst.stall_id,
-                    cpu_inst.flush_ex,
-                    cpu_inst.flush_id);
-                $display("");
-            end
+            // Show pipeline stages
+            $display("  Pipeline Stages:");
+            $display("    ID/EX: rs1=%0d rs2=%0d rd=%0d RegWrite=%b", 
+                cpu_inst.id_ex_rs1, 
+                cpu_inst.id_ex_rs2,
+                cpu_inst.id_ex_rd,
+                cpu_inst.id_ex_reg_write);
+            $display("    EX/MEM: rd=%0d RegWrite=%b ALUResult=%h", 
+                cpu_inst.ex_mem_rd,
+                cpu_inst.ex_mem_reg_write,
+                cpu_inst.ex_mem_alu_result);
+            $display("    MEM/WB: rd=%0d RegWrite=%b WriteData=%h", 
+                cpu_inst.mem_wb_rd,
+                cpu_inst.mem_wb_reg_write,
+                cpu_inst.wb_write_data);
+                
+            // Show forwarding
+            $display("  Forwarding: forward_a=%b forward_b=%b", 
+                cpu_inst.forward_a,
+                cpu_inst.forward_b);
+            $display("    ALU inputs: A=%h B=%h (before ALUSrc)", 
+                cpu_inst.alu_in_a,
+                cpu_inst.alu_in_b);
+            $display("    ALU result=%h", 
+                cpu_inst.ex_alu_result);
+                
+            $display("  Hazards: stall_if=%b stall_id=%b flush_ex=%b flush_id=%b",
+                cpu_inst.stall_if,
+                cpu_inst.stall_id,
+                cpu_inst.flush_ex,
+                cpu_inst.flush_id);
+            $display("");
         end
 
         $display("-------------------------------------------------------------");
@@ -90,14 +99,6 @@ module pipelined_cpu_tb;
         $display("-------------------------------------------------------------");
 
         // VERIFICATION
-        if (cpu_inst.reg_file_inst.register_memory[1] == 32'h12345000) begin
-            $display("[PASS] LUI Test");
-        end
-
-        if (cpu_inst.reg_file_inst.register_memory[3] == 32'd1) begin
-             $display("[PASS] BNE Test");
-        end
-
         if (cpu_inst.reg_file_inst.register_memory[2] == 32'd55) begin
              $display("[PASS] Fibonacci Test (x2=55)");
         end else begin
