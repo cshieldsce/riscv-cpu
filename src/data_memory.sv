@@ -1,4 +1,5 @@
 import riscv_pkg::*;
+
 module DataMemory (
     input  logic        clk,
     input  logic        MemWrite, // '1' = Write, '0' = Read
@@ -16,7 +17,6 @@ module DataMemory (
     // Alignment signals
     logic [31:0] word_addr;
     logic [1:0]  byte_offset;
-
     logic [31:0] mem_read_word;
     
     // 1. Extract the word from memory purely with combinational logic
@@ -27,7 +27,7 @@ module DataMemory (
     assign leds_out = led_reg;
 
     // --- READ LOGIC ---
-    always @(*) begin   // Changed to 'always @(*)' to fix Icarus compiler error
+    always @(*) begin
         ReadData = 32'b0; 
         if (word_addr < 1024) begin
             case (funct3)
@@ -71,13 +71,22 @@ module DataMemory (
 
     always @(posedge clk) begin
         if (MemWrite) begin
-            // 1. MMIO
+            // 1. MMIO - LEDs
             if (Address == 32'h8000_0000) begin
                 led_reg <= WriteData[3:0]; 
             end
-            // 2. RAM
+            
+            // 2. COMPLIANCE HALT
+            else if (Address == 32'h8000_0004) begin
+                $display("--- COMPLIANCE TEST COMPLETE ---");
+                // This creates the file the test suite looks for
+                $writememh("memory_dump.hex", ram_memory); 
+                $finish;
+            end
+
+            // 3. RAM Write
             else if (word_addr < 1024) begin
-                new_word = mem_read_word; // Initialize new_word with current memory value
+                new_word = mem_read_word;
                 case (funct3)
                     F3_BYTE: begin 
                         case (byte_offset)
@@ -102,4 +111,5 @@ module DataMemory (
             end
         end
     end
+
 endmodule
