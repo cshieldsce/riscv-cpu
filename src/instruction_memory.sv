@@ -3,19 +3,22 @@ module InstructionMemory (
     output logic [31:0] Instruction
 );
 
-    // Allocate space to store 64 instructions (64 32-bit words)
-    logic [31:0] rom_memory [0:63];
+    // Allocate 16KB to handle hex file addresses up to 0x3FFF
+    // This gives us 4096 words (indices 0-4095)
+    logic [31:0] rom_memory [0:4095];
 
     // Initialize memory
     initial begin
-        for (int i = 0; i < 64; i = i + 1) begin
+        for (int i = 0; i < 4096; i = i + 1) begin
             rom_memory[i] = 32'h00000013; // NOP instruction
         end
     end
 
     // Combinational read logic
-    // PC provides a byte address while our memory is word-addressed
-    // To fix this we must we right-shift the address by 2 (equilalent to dividing by 4)
-    assign Instruction = rom_memory[Address >> 2]; 
+    logic [31:0] word_addr;
+    assign word_addr = Address >> 2;
+    
+    // Bounds checking
+    assign Instruction = (word_addr < 4096) ? rom_memory[word_addr] : 32'h00000013;
 
 endmodule
