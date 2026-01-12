@@ -143,8 +143,11 @@ class riscv_cpu(pluginTemplate):
                     f.writelines(sig_lines)
                 
                 # Copy to expected names for RISCOF
-                # DUT-Template.signature is already dut_sig_file
-                shutil.copy(dut_sig_file, os.path.join(test_dir, "DUT-riscv_cpu.signature"))
+                # We create multiple variants to be absolutely sure RISCOF finds it
+                for name_variant in ["DUT-Template.signature", "DUT-riscv_cpu.signature", "riscv_cpu.signature", "Template.signature"]:
+                    dst = os.path.join(test_dir, name_variant)
+                    if os.path.abspath(dut_sig_file) != os.path.abspath(dst):
+                        shutil.copy(dut_sig_file, dst)
             else:
                 logger.error(f"Signature file not generated for {test_name}")
                 # Create empty signature to avoid crash, or fail?

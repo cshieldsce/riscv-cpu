@@ -63,6 +63,7 @@ jobs:
     - name: Run Compliance Tests
       run: |
         chmod +x run_compliance.sh
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/compliance:$(pwd)/compliance/spike_sim
         ./run_compliance.sh
 
     - name: Upload Compliance Report
