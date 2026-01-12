@@ -11,7 +11,8 @@ package riscv_pkg;
         OP_JALR     = 7'b1100111, // jalr
         OP_LUI      = 7'b0110111, // lui (Load Upper Immediate)
         OP_AUIPC    = 7'b0010111, // auipc (Add Upper Immediate to PC)
-        OP_SYSTEM   = 7'b1110011  // ecall, csrrw...
+        OP_SYSTEM   = 7'b1110011, // ecall, csrrw...
+        OP_FENCE    = 7'b0001111  // fence
     } opcode_t;
 
     // --- ALU OPERATIONS ---
