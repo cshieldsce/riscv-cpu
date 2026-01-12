@@ -8,3 +8,5 @@ riscv-arch-test/
 debug_compile/
 __pycache__/
 *.pyc 
+# GitHub Actions artifacts
+.github/workflows/
