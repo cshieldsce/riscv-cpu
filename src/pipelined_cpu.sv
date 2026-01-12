@@ -4,11 +4,11 @@ module PipelinedCPU (
     input logic clk,
     input logic rst,
     
-    // Instruction memory interface (NEW)
+    // Instruction memory interface
     output logic [31:0] imem_addr,
     input  logic [31:0] imem_data,
     
-    // Data memory interface (NEW)
+    // Data memory interface
     output logic [31:0] dmem_addr,
     input  logic [31:0] dmem_rdata,
     output logic [31:0] dmem_wdata,
@@ -113,27 +113,39 @@ module PipelinedCPU (
         
         if (id_ex_branch) begin
             case (id_ex_funct3)
-                F3_BEQ:  branch_taken = ex_zero;      // BEQ
-                F3_BNE:  branch_taken = ~ex_zero;     // BNE
-                
-                F3_BLT:  branch_taken = alu_lsb;      // BLT (SLT result is 1)
-                F3_BGE:  branch_taken = ~alu_lsb;     // BGE (!SLT)
-                F3_BLTU: branch_taken = alu_lsb;      // BLTU
-                F3_BGEU: branch_taken = ~alu_lsb;     // BGEU
-                
+                F3_BEQ:  branch_taken = ex_zero;
+                F3_BNE:  branch_taken = ~ex_zero;
+                F3_BLT:  branch_taken = alu_lsb;
+                F3_BGE:  branch_taken = ~alu_lsb;
+                F3_BLTU: branch_taken = alu_lsb;
+                F3_BGEU: branch_taken = ~alu_lsb;
                 default: branch_taken = 1'b0;
             endcase
         end
     end
 
-    assign pcsrc = branch_taken | id_ex_jump | id_ex_jalr;
+    // Early jump detection in ID stage
+    logic jump_id_stage;
+    assign jump_id_stage = (id_jump | id_jalr);
+    
+    // Combine branch (from EX) and jump (from ID)
+    assign pcsrc = branch_taken | jump_id_stage;
+
+    // Calculate jump target early
+    logic [31:0] jump_target_id;
+    assign jump_target_id = if_id_pc + id_imm_out;
 
     always_comb begin
         if (stall_if) begin
             next_pc = if_pc;
-        end else if (id_ex_jalr) begin
+        end else if (id_jalr) begin
+            // JALR uses register value (but we can't read it yet in ID stage)
+            // For now, still wait for EX stage for JALR
             next_pc = ex_alu_result;
-        end else if (branch_taken || id_ex_jump) begin
+        end else if (id_jump) begin
+            // JAL can be resolved in ID stage!
+            next_pc = jump_target_id;
+        end else if (branch_taken) begin
             next_pc = ex_branch_target;
         end else begin
             next_pc = if_pc_plus_4;
@@ -145,13 +157,13 @@ module PipelinedCPU (
         .clk(clk),
         .rst(rst),
         .next_pc_in(next_pc),
-        .instruction_in(imem_data),      // NEW: External instruction input
+        .instruction_in(imem_data),      // External instruction input
         .instruction_out(if_instruction),
         .pc_out(if_pc),
         .pc_plus_4_out(if_pc_plus_4)
     );
     
-    // NEW: Expose PC as instruction memory address
+    // Expose PC as instruction memory address
     assign imem_addr = if_pc;
 
     // IF/ID PIPELINE REGISTER:
@@ -225,6 +237,7 @@ module PipelinedCPU (
         .id_ex_rd(id_ex_rd),
         .id_ex_mem_read(id_ex_mem_to_reg[0]), // Bit 0 of MemToReg is 1 for LW (01)
         .PCSrc(pcsrc),
+        .jump_id_stage(jump_id_stage),
         .stall_if(stall_if),
         .stall_id(stall_id),
         .flush_ex(flush_ex),
@@ -372,7 +385,7 @@ module PipelinedCPU (
     // Generate byte enables based on funct3
     always_comb begin
         case (ex_mem_funct3)
-            F3_BYTE, F3_BYTE_U: begin  // LB/LBU/SB
+            3'b000, 3'b100: begin  // LB/LBU/SB
                 case (dmem_addr[1:0])
                     2'b00: dmem_be = 4'b0001;
                     2'b01: dmem_be = 4'b0010;
@@ -380,7 +393,7 @@ module PipelinedCPU (
                     2'b11: dmem_be = 4'b1000;
                 endcase
             end
-            F3_HALF, F3_HALF_U: begin  // LH/LHU/SH
+            3'b001, 3'b101: begin  // LH/LHU/SH
                 dmem_be = dmem_addr[1] ? 4'b1100 : 4'b0011;
             end
             default: dmem_be = 4'b1111;  // LW/SW
