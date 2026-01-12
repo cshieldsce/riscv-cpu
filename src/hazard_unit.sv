@@ -10,6 +10,9 @@ module HazardUnit (
     // Inputs from Branch Logic
     input logic PCSrc,        // High if branch is taken
 
+    // Early jump detection from ID stage
+    input logic jump_id_stage,
+    
     // Outputs to Control Signals
     output logic stall_if,        // Freeze PC
     output logic stall_id,        // Freeze IF/ID register
@@ -27,12 +30,12 @@ module HazardUnit (
         // --- LOAD-USE HAZARD DETECTION ---
         // If the instruction in EX is a Load (reading from memory)
         // AND it writes to a register that the current instruction in ID needs.
-        if (id_ex_mem_read && ((id_ex_rd == id_rs1 || (id_ex_rd == id_rs2)))) begin
+        if (id_ex_mem_read && ((id_ex_rd == id_rs1) || (id_ex_rd == id_rs2))) begin
             stall_if = 1;   // Freeze PC
             stall_id = 1;   // Freeze IF/ID register
             flush_ex = 1;   // Insert NOP in EX stage
         end
-
+        
         // --- CONTROL HAZARD DETECTION ---
         // When PCSrc goes high, a branch/jump in EX stage has been taken.
         // At this moment in the pipeline:
@@ -44,7 +47,12 @@ module HazardUnit (
         // We do NOT flush ID/EX because it may contain instructions that must complete.
         else if (PCSrc) begin
             flush_id = 1;   // Kill instruction in IF/ID (speculative fetch)
-                            // DO NOT flush ID/EX - let instructions complete naturally
+            flush_ex = 1;
+        end
+        
+        // Early jump detected in ID stage - only flush IF/ID
+        else if (jump_id_stage) begin
+            flush_id = 1;  // Kill the instruction just fetched
         end
     end
 endmodule
