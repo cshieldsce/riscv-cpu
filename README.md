@@ -60,7 +60,7 @@ Phase 3: ISA Completeness (Completed)
 
 Phase 4: C-Readiness & Hardening (Current)
 
-- [ ] Complex Branching: Implement BNE, BLT, BGE to support if/else logic.
+- [x] Complex Branching: Implement BNE, BLT, BGE to support if/else logic.
 - [ ] Compliance: Run extensive simulation tests to verify corner cases.
 
 Phase 5: FPGA & Peripherals (Future)
