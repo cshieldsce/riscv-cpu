@@ -3,6 +3,18 @@ import riscv_pkg::*;
 module PipelinedCPU (
     input logic clk,
     input logic rst,
+    
+    // Instruction memory interface (NEW)
+    output logic [31:0] imem_addr,
+    input  logic [31:0] imem_data,
+    
+    // Data memory interface (NEW)
+    output logic [31:0] dmem_addr,
+    input  logic [31:0] dmem_rdata,
+    output logic [31:0] dmem_wdata,
+    output logic        dmem_we,
+    output logic [3:0]  dmem_be,
+    
     output logic [3:0] leds_out
 );
     // ========================================================================
@@ -104,7 +116,6 @@ module PipelinedCPU (
                 F3_BEQ:  branch_taken = ex_zero;      // BEQ
                 F3_BNE:  branch_taken = ~ex_zero;     // BNE
                 
-                // --- FIX 3: Use the helper wire 'alu_lsb' here ---
                 F3_BLT:  branch_taken = alu_lsb;      // BLT (SLT result is 1)
                 F3_BGE:  branch_taken = ~alu_lsb;     // BGE (!SLT)
                 F3_BLTU: branch_taken = alu_lsb;      // BLTU
@@ -115,20 +126,17 @@ module PipelinedCPU (
         end
     end
 
-    // 1. Determine if a branch/jump is taken
-    // PCSrc is high if: (Branch condition met) OR (Jump instruction)
     assign pcsrc = branch_taken | id_ex_jump | id_ex_jalr;
 
-    // 2. Next PC Mux
     always_comb begin
         if (stall_if) begin
-            next_pc = if_pc; // STALL: Keep the same PC
+            next_pc = if_pc;
         end else if (id_ex_jalr) begin
-            next_pc = ex_alu_result; // JALR Target
+            next_pc = ex_alu_result;
         end else if (branch_taken || id_ex_jump) begin
-            next_pc = ex_branch_target; // Branch/JAL Target
+            next_pc = ex_branch_target;
         end else begin
-            next_pc = if_pc_plus_4; // Normal: PC + 4
+            next_pc = if_pc_plus_4;
         end
     end
 
@@ -136,11 +144,15 @@ module PipelinedCPU (
     IF_Stage if_stage_inst (
         .clk(clk),
         .rst(rst),
-        .next_pc_in(next_pc),             // Input: Next PC
-        .instruction_out(if_instruction), // Output: Fetched Instruction
-        .pc_out(if_pc),                   // Output: Current PC
-        .pc_plus_4_out(if_pc_plus_4)      // Output: PC + 4
+        .next_pc_in(next_pc),
+        .instruction_in(imem_data),      // NEW: External instruction input
+        .instruction_out(if_instruction),
+        .pc_out(if_pc),
+        .pc_plus_4_out(if_pc_plus_4)
     );
+    
+    // NEW: Expose PC as instruction memory address
+    assign imem_addr = if_pc;
 
     // IF/ID PIPELINE REGISTER:
     // This register saves the state between Fetch and Decode.
@@ -352,16 +364,41 @@ module PipelinedCPU (
     // MEM: Memory
     // ========================================================================
 
-    // --- Data Memory ---
-    DataMemory data_memory_inst (
-        .clk(clk),
-        .MemWrite(ex_mem_mem_write),    // Write enable from EX/MEM reg
-        .funct3(ex_mem_funct3),         // Funct3 for byte/half/word access
-        .Address(ex_mem_alu_result),    // Address from ALU result
-        .WriteData(ex_mem_write_data),  // Data to write (from rs2)
-        .ReadData(mem_read_data),        // Output: Data read from memory
-        .leds_out(leds_out)             // Output: LED control signals
-    );
+    // Expose data memory interface
+    assign dmem_addr = ex_mem_alu_result;
+    assign dmem_wdata = ex_mem_write_data;
+    assign dmem_we = ex_mem_mem_write;
+    
+    // Generate byte enables based on funct3
+    always_comb begin
+        case (ex_mem_funct3)
+            F3_BYTE, F3_BYTE_U: begin  // LB/LBU/SB
+                case (dmem_addr[1:0])
+                    2'b00: dmem_be = 4'b0001;
+                    2'b01: dmem_be = 4'b0010;
+                    2'b10: dmem_be = 4'b0100;
+                    2'b11: dmem_be = 4'b1000;
+                endcase
+            end
+            F3_HALF, F3_HALF_U: begin  // LH/LHU/SH
+                dmem_be = dmem_addr[1] ? 4'b1100 : 4'b0011;
+            end
+            default: dmem_be = 4'b1111;  // LW/SW
+        endcase
+    end
+    
+    // Connect external memory read data to pipeline
+    assign mem_read_data = dmem_rdata;
+    
+    // MMIO - Extract LED output from memory writes
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            leds_out <= 4'b0;
+        end else if (dmem_we && dmem_addr == 32'hFFFF_FFF0) begin
+            // LED address - capture write data
+            leds_out <= dmem_wdata[3:0];
+        end
+    end
 
     // MEM/WB PIPELINE REGISTER:
     // This register saves the final results for the Writeback stage.
