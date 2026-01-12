@@ -1,0 +1,73 @@
+name: RISC-V Compliance Suite
+
+on:
+  # 1. Manual trigger from the "Actions" tab
+  workflow_dispatch:
+ 
+  # 2. Only run on PRs that actually touch the CPU or Test code
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'compliance/**'
+      - 'run_compliance.sh'
+      - '.github/workflows/compliance.yml'
+      
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # The test suite is gitignored, so the Action must clone it
+    - name: Checkout RISC-V Arch Test Suite
+      uses: actions/checkout@v4
+      with:
+        repository: riscv-non-isa/riscv-arch-test
+        path: riscv-arch-test
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y iverilog gcc-riscv64-unknown-elf device-tree-compiler
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+ 
+    - name: Install RISCOF
+      run: |
+        pip install riscof
+
+    - name: Cache Spike Simulator
+      id: cache-spike
+      uses: actions/cache@v3
+      with:
+        path: ~/.local/bin/spike
+        key: ${{ runner.os }}-spike-v1
+    - name: Build Spike (if not cached)
+      if: steps.cache-spike.outputs.cache-hit != 'true'
+      run: |
+        git clone https://github.com/riscv-software-src/riscv-isa-sim.git
+        cd riscv-isa-sim
+        mkdir build && cd build
+        ../configure --prefix=$HOME/.local
+        make -j$(nproc)
+        make install
+ 
+    - name: Add local bin to PATH
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Run Compliance Tests
+      run: |
+        chmod +x run_compliance.sh
+        ./run_compliance.sh
+
+    - name: Upload Compliance Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: riscof-report
+        path: riscof_work/report.html
