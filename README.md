@@ -1,6 +1,6 @@
 # 32-bit RISC-V CPU Core
 
-> This repository contains the design and verification files for a 32-bit RISC-V (RV32I) CPU core, implemented from scratch in SystemVerilog.
+> This repository contains the design and verification files for a 5-Stage Pipelined 32-bit RISC-V (RV32I) CPU core, implemented from scratch in SystemVerilog.
 
 ## Architecture Overview
 
@@ -10,58 +10,67 @@ The CPU implements a 5-stage pipelined Harvard architecture (IF, ID, EX, MEM, WB
 
 ## Supported Instructions (RV32I)
 
-The core passes comprehensive verification tests for the following instruction types:
+The core has been validated against the **RISC-V Architectural Test Suite** and supports the following instruction types:
 
 - **Arithmetic:** `add`, `sub`, `addi`, `slt`, `sltu`, `slti`, `sltiu`
 - **Logic:** `and`, `or`, `xor`, `andi`, `ori`, `xori`
 - **Shifts:** `sll`, `srl`, `sra`, `slli`, `srli`, `srai`
-- **Memory:** `lw` (Load Word), `sw` (Store Word)
-- **Control Flow:** `beq` (Branch Equal), `jal` (Jump & Link), `jalr` (Jump Register)
+- **Memory:** `lw`, `sw`, `lb`, `lbu`, `lh`, `lhu`, `sb`, `sh`
+- **Control Flow:** `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu`, `jal`, `jalr`
+- **Large Constants:** `lui`, `auipc`
+
+## Compliance Testing
+
+This project utilizes [RISCOF](https://github.com/riscv-software-src/riscof) (RISC-V Architectural Test Framework) to ensure strict adherence to the RISC-V Unprivileged Specification.
+
+### Testing Infrastructure
+- **DUT Plugin:** Python plugin located in `compliance/` that compiles the RTL using Icarus Verilog and executes tests.
+- **Reference Model:** Uses [Spike](https://github.com/riscv-software-src/riscv-isa-sim) (The official RISC-V ISA Simulator) for golden-model comparison.
+- **Automated Verification:** Signatures are automatically extracted from the DUT's memory and compared against Spike's output.
+
+### Running Compliance Tests Locally
+To run the full suite (requires `riscof`, `spike`, and `riscv64-unknown-elf-gcc`):
+
+```bash
+chmod +x run_compliance.sh
+./run_compliance.sh
+```
+
+## GitHub Actions CI/CD
+
+The repository includes automated workflows to maintain code quality:
+1.  **Basic CI (`ci.yml`)**: Runs to verify basic core functionality with custom assembly tests.
+2.  **Compliance Suite (`compliance.yml`)**: A comprehensive workflow that builds Spike and runs the official RISC-V Architecture Test suite. 
+    *   *Note: These are both configured with `workflow_dispatch` to be run manually or on PRs affecting core logic to optimize resource usage.*
 
 ## Tools & Requirements
 
-- **Simulator:** [Icarus Verilog](https://steveicarus.github.io/iverilog/) (`iverilog`) is used for compiling and simulating the design.
+- **Simulator:** [Icarus Verilog](https://steveicarus.github.io/iverilog/) (`iverilog`) v12.0+
+- **Toolchain:** `riscv64-unknown-elf-gcc` (for test compilation)
+- **Framework:** `riscof` (for architectural compliance)
 - **Language:** SystemVerilog (IEEE 1800-2012)
 
 ## Running the project
 
-The project includes a full regression testbench that verifies R-Type, I-Type, Memory, and Control Flow instructions in a single simulation run.
+For simple verification (using the Fibonacci sequence test):
 
 ```bash
-iverilog -g2012 -o sim.out src/*.sv test/pipelined_cpu_tb.sv
+iverilog -g2012 -o sim.out riscv_pkg.sv src/*.sv test/pipelined_cpu_tb.sv
+vvp sim.out +TEST=mem/fib_test.mem
 ```
-
-To run the simulation:
-
-```bash
-vvp sim.out
-```
-
-You can also compile a run the Fibonacci Sequence program by changing the memory file in `instruction_memory.sv` on `line 11`. After you change the memory file from `program.mem` to `fib_test.mem` you can compile `test/fib_test_tb.sv` and run it.
 
 ## Roadmap
 
 Phase 1: Single-Cycle Core (Completed)
-
-- [x] Implemented full datapath for R, I, S, B, and J type instructions.
-- [x] Developed modular Control Unit with ALU decoding.
-- [x] Verified functionality with Fibonacci and regression testbenches.
-
 Phase 2: 5-Stage Pipelining (Completed)
-
-- [x] **Pipeline Registers:** Insert registers between IF, ID, EX, MEM, and WB stages.
-- [x] **Forwarding Unit:** Implement operand forwarding to resolve hazards without stalling.
-- [x] **Hazard Unit:** Detect data hazards and insert bubbles (stalls).
-
 Phase 3: ISA Completeness (Completed)
 
-- [x] **Large Constants:** Implemented LUI & AUIPC to support 32-bit address generation (essential for C pointers).
-- [x] **Basic MMIO:** Implemented Memory-Mapped I/O at 0x80000000 for LED control.
+Phase 4: C-Readiness & Hardening (Completed)
 
-Phase 4: C-Readiness & Hardening (Current)
-
-- [x] Complex Branching: Implement BNE, BLT, BGE to support if/else logic.
-- [ ] Compliance: Run extensive simulation tests to verify corner cases.
+- [x] **Complex Branching:** Implement BNE, BLT, BGE, etc., to support standard C control flow.
+- [x] **Compliance:** Integrated RISCOF and passed the official RV32I test suite.
+- [x] **Memory Expansion:** Increased I-Mem and D-Mem to 4MB each to support large binaries.
+- [x] **MMIO Hardening:** Standardized `tohost` (0x80001000) for test termination.
 
 Phase 5: FPGA & Peripherals (Future)
 
