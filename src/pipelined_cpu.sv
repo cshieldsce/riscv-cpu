@@ -14,6 +14,7 @@ module PipelinedCPU (
     output logic [31:0] dmem_wdata,
     output logic        dmem_we,
     output logic [3:0]  dmem_be,
+    output logic [2:0]  dmem_funct3,
     
     output logic [3:0] leds_out
 );
@@ -381,6 +382,7 @@ module PipelinedCPU (
     assign dmem_addr = ex_mem_alu_result;
     assign dmem_wdata = ex_mem_write_data;
     assign dmem_we = ex_mem_mem_write;
+    assign dmem_funct3 = ex_mem_funct3;
     
     // Generate byte enables based on funct3
     always_comb begin
@@ -407,9 +409,9 @@ module PipelinedCPU (
     always_ff @(posedge clk) begin
         if (rst) begin
             leds_out <= 4'b0;
-        end else if (dmem_we && dmem_addr == 32'hFFFF_FFF0) begin
+        end else if (ex_mem_mem_write && ex_mem_alu_result == 32'hFFFF_FFF0) begin
             // LED address - capture write data
-            leds_out <= dmem_wdata[3:0];
+            leds_out <= ex_mem_write_data[3:0];
         end
     end
 

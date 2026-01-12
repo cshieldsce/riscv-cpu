@@ -1,3 +1,10 @@
 # Simulation output files
 *.vcd
 *.out
+*.log                                                                                                                           │
+# RISCOF / Compliance artifacts
+riscof_work/
+riscv-arch-test/
+debug_compile/
+__pycache__/
+*.pyc 

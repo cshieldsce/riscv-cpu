@@ -10,9 +10,10 @@ module DataMemory (
     output logic [3:0]  leds_out
 );
     
-    // 4KB Memory (1024 words of 32 bits)
-    logic [31:0] ram_memory [0:1023];
+    // 4MB Memory (1048576 words of 32 bits)
+    logic [31:0] ram_memory [0:1048575];
     logic [3:0]  led_reg;
+    integer sig_file; // File handle for signature dump
 
     // Alignment signals
     logic [31:0] word_addr;
@@ -20,7 +21,7 @@ module DataMemory (
     logic [31:0] mem_read_word;
     
     // 1. Extract the word from memory purely with combinational logic
-    assign mem_read_word = (word_addr < 1024) ? ram_memory[word_addr] : 32'b0;
+    assign mem_read_word = (word_addr < 1048576) ? ram_memory[word_addr] : 32'b0;
 
     assign word_addr = {2'b0, Address[31:2]}; // Word-aligned address
     assign byte_offset = Address[1:0];        // Byte offset within the word
@@ -29,7 +30,7 @@ module DataMemory (
     // --- READ LOGIC ---
     always @(*) begin
         ReadData = 32'b0; 
-        if (word_addr < 1024) begin
+        if (word_addr < 1048576) begin
             case (funct3)
                 F3_BYTE: begin // Load Byte (lb)
                     case (byte_offset)
@@ -76,16 +77,26 @@ module DataMemory (
                 led_reg <= WriteData[3:0]; 
             end
             
-            // 2. COMPLIANCE HALT
-            else if (Address == 32'h8000_0004) begin
-                $display("--- COMPLIANCE TEST COMPLETE ---");
-                // This creates the file the test suite looks for
-                $writememh("memory_dump.hex", ram_memory); 
+            // 2. COMPLIANCE HALT (tohost)
+            else if (Address == 32'h80001000) begin
+                if (WriteData[0] == 1) begin
+                    $display("--- COMPLIANCE TEST PASSED ---");
+                end else begin
+                    $display("--- COMPLIANCE TEST FAILED (tohost = %0d) ---", WriteData);
+                end
+
+                // Dump signature region to file
+                sig_file = $fopen("signature.txt", "w");
+                // Dump 8KB starting from 0x200000 (index 524288)
+                for (int i = 524288; i < 526336; i = i + 1) begin
+                    $fwrite(sig_file, "%h\n", ram_memory[i]);
+                end
+                $fclose(sig_file);
                 $finish;
             end
 
             // 3. RAM Write
-            else if (word_addr < 1024) begin
+            else if (word_addr < 1048576) begin
                 new_word = mem_read_word;
                 case (funct3)
                     F3_BYTE: begin 
