@@ -1,14 +1,22 @@
-# 32-bit RISC-V CPU Core
+# riscv-5: Verified Pipelined Core
 
-> This repository contains the design and verification files for a 5-Stage Pipelined 32-bit RISC-V (RV32I) CPU core, implemented from scratch in SystemVerilog.
+![CI Status](https://github.com/cshieldsce/riscv-cpu/actions/workflows/ci.yml/badge.svg) ![Compliance Status](https://github.com/cshieldsce/riscv-cpu/actions/workflows/compliance.yml/badge.svg)
+
+> A fully verified, 5-stage pipelined RISC-V processor (RV32I) implemented in SystemVerilog.
 
 ## Architecture Overview
 
-The CPU implements a 5-stage pipelined Harvard architecture (IF, ID, EX, MEM, WB). Its datapath is divided into stages to maximize instruction throughput. The design incorporates a Forwarding Unit to resolve data hazards via operand bypassing and Hazard Detection logic to manage pipeline stalls and control flow, ensuring correct execution of Arithmetic, Logic, Memory, Branch, and Jump operations. More detailed notes on the pipeline can be found [here](docs/pipeline_notes.md).
+This project is a Harvard-architecture RISC-V core designed to be cycle-accurate and strictly compliant to the ISA specification. Verification is prioritized by using the official RISC-V test suite (RISCOF) to validate every instruction against the standard golden model.
 
 ![alt text](docs/pipeline.png)
 
-## Supported Instructions (RV32I)
+### Features
+- 5-Stage Pipeline: `IF`, `ID`, `EX`, `MEM`, `WB` stages with pipeline registers.
+- Hazard Management: Resolves data, load-use, and control hazards to manage pipeline stalls and control flow.
+- Verified Compliance: Passing the official RISC-V rv32i_m/I architectural test suite.
+- Automated CI/CD: GitHub Actions workflows that re-verify the core against the ISA spec.
+
+### Supported Instructions (RV32I)
 
 The core has been validated against the **RISC-V Architectural Test Suite** and supports the following instruction types:
 
@@ -23,9 +31,9 @@ The core has been validated against the **RISC-V Architectural Test Suite** and 
 
 This project utilizes [RISCOF](https://github.com/riscv-software-src/riscof) (RISC-V Architectural Test Framework) to ensure strict adherence to the RISC-V Unprivileged Specification.
 
-### Testing Infrastructure
+### Test Structure
 - **DUT Plugin:** Python plugin located in `compliance/` that compiles the RTL using Icarus Verilog and executes tests.
-- **Reference Model:** Uses [Spike](https://github.com/riscv-software-src/riscv-isa-sim) (The official RISC-V ISA Simulator) for golden-model comparison.
+- **Reference Model:** Uses [Spike](https://github.com/riscv-software-src/riscv-isa-sim) for golden-model comparison.
 - **Automated Verification:** Signatures are automatically extracted from the DUT's memory and compared against Spike's output.
 
 ### Running Compliance Tests Locally
