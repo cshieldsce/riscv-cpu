@@ -34,13 +34,12 @@ This project utilizes [RISCOF](https://github.com/riscv-software-src/riscof) (RI
 ### Test Structure
 - **DUT Plugin:** Python plugin located in `compliance/` that compiles the RTL using Icarus Verilog and executes tests.
 - **Reference Model:** Uses [Spike](https://github.com/riscv-software-src/riscv-isa-sim) for golden-model comparison.
-- **Automated Verification:** Signatures are automatically extracted from the DUT's memory and compared against Spike's output.
+- **Verification:** Signatures are automatically extracted from the DUT's memory and compared against Spike's output.
 
 ### Running Compliance Tests Locally
 To run the full suite (requires `riscof`, `spike`, and `riscv64-unknown-elf-gcc`):
 
 ```bash
-chmod +x run_compliance.sh
 ./run_compliance.sh
 ```
 
