@@ -125,30 +125,32 @@ module PipelinedCPU (
         end
     end
 
-    // Early jump detection in ID stage
+    // Early jump detection in ID stage (ONLY for JAL, NOT JALR)
     logic jump_id_stage;
-    assign jump_id_stage = (id_jump | id_jalr);
+    assign jump_id_stage = id_jump; 
     
-    // Combine branch (from EX) and jump (from ID)
-    assign pcsrc = branch_taken | jump_id_stage;
+    // Combine branch/jalr (from EX)
+    // We flush if we take a branch OR if we take a JALR in EX stage
+    assign pcsrc = branch_taken | id_ex_jalr;
 
-    // Calculate jump target early
+    // Calculate JAL target early
     logic [31:0] jump_target_id;
     assign jump_target_id = if_id_pc + id_imm_out;
 
     always_comb begin
         if (stall_if) begin
             next_pc = if_pc;
-        end else if (id_jalr) begin
-            // JALR uses register value (but we can't read it yet in ID stage)
-            // For now, still wait for EX stage for JALR
-            next_pc = ex_alu_result;
-        end else if (id_jump) begin
-            // JAL can be resolved in ID stage!
-            next_pc = jump_target_id;
+        end else if (id_ex_jalr) begin
+            // JALR (Resolved in EX stage) - OLDER instruction priority
+            next_pc = ex_alu_result & 32'hFFFFFFFE; 
         end else if (branch_taken) begin
+            // Conditional Branch (Resolved in EX stage) - OLDER instruction priority
             next_pc = ex_branch_target;
+        end else if (id_jump) begin
+            // JAL (Resolved in ID stage) - YOUNGER instruction priority
+            next_pc = jump_target_id;
         end else begin
+            // Normal execution
             next_pc = if_pc_plus_4;
         end
     end
