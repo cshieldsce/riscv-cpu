@@ -47,6 +47,8 @@ module ImmGen (
                 imm_out = imm_I;
             OP_LOAD: // I-type (lw)
                 imm_out = imm_I;
+            OP_JALR: // I-type (jalr)
+                imm_out = imm_I;
             OP_STORE: // S-type (sw)
                 imm_out = imm_S;
             OP_BRANCH: // B-type (beq)
