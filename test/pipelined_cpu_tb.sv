@@ -6,11 +6,11 @@ module pipelined_cpu_tb;
     reg [2047:0] test_file;
 
     // Memory interface signals
-    logic [ADDR_WIDTH-1:0] imem_addr;
-    logic [DATA_WIDTH-1:0] imem_data;
+    logic [ALEN-1:0] imem_addr;
+    logic [31:0]     imem_data; // Instruction is always 32 bits
     
-    logic [ADDR_WIDTH-1:0] dmem_addr;
-    logic [DATA_WIDTH-1:0] dmem_rdata, dmem_wdata;
+    logic [ALEN-1:0] dmem_addr;
+    logic [XLEN-1:0] dmem_rdata, dmem_wdata;
     logic dmem_we;
     logic [3:0] dmem_be;
     logic [2:0] dmem_funct3;

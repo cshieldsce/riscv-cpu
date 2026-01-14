@@ -6,7 +6,7 @@
 
 ## Architecture Overview
 
-This project is a Harvard-architecture RISC-V core designed to be cycle-accurate and strictly compliant to the ISA specification. Verification is prioritized by using the official RISC-V test suite (RISCOF) to validate every instruction against the standard golden model.
+This project is a Harvard-architecture RISC-V core designed to be cycle-accurate and strictly compliant to the ISA specification. Verification is prioritized by using the official RISC-V test suite (RISCOF) to validate every instruction against the standard golden model. 
 
 ![alt text](docs/pipeline.png)
 

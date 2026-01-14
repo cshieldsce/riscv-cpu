@@ -1,10 +1,12 @@
+import riscv_pkg::*;
+
 module PipelineRegister #(
     parameter WIDTH = 32    //  WIDTH: The number of bits this register needs to store.
                             //         (e.g., 32 for PC, 100+ for ID/EX control signals)
 )(
-    input  logic clk, rst, en, clear, // Control signals 
-    input  logic [WIDTH-1:0] in,      // Data from input to stage
-    output logic [WIDTH-1:0] out      // Data to output
+    input  logic             clk, rst, en, clear, // Control signals 
+    input  logic [WIDTH-1:0] in,                  // Data from input to stage
+    output logic [WIDTH-1:0] out                  // Data to output
 );
 
     always_ff @(posedge clk) begin
@@ -15,7 +17,6 @@ module PipelineRegister #(
         end else if (en) begin
             out <= in;              // Capture input
         end
-
         // Holding the old value (Stall)
     end
 

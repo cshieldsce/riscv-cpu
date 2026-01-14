@@ -1,6 +1,8 @@
+import riscv_pkg::*;
+
 module InstructionMemory (
-    input logic [31:0] Address,
-    output logic [31:0] Instruction
+    input  logic [ALEN-1:0] Address,
+    output logic [31:0]     Instruction
 );
 
     // 4MB to handle huge tests
@@ -14,7 +16,7 @@ module InstructionMemory (
     end
 
     // Combinational read logic
-    logic [31:0] word_addr;
+    logic [ALEN-1:0] word_addr;
     assign word_addr = Address >> 2;
     
     // Bounds checking

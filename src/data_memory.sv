@@ -1,25 +1,31 @@
 import riscv_pkg::*;
 
 module DataMemory (
-    input  logic        clk,
-    input  logic        MemWrite, // '1' = Write, '0' = Read
-    input  logic [2:0]  funct3,   // To determine byte/half/word access
-    input  logic [31:0] Address,
-    input  logic [31:0] WriteData,
-    output logic [31:0] ReadData, 
-    output logic [3:0]  leds_out
+    input  logic             clk,
+    input  logic             MemWrite, // '1' = Write, '0' = Read
+    input  logic [2:0]       funct3,   // To determine byte/half/word access
+    input  logic [ALEN-1:0]  Address,
+    input  logic [XLEN-1:0]  WriteData,
+    output logic [XLEN-1:0]  ReadData, 
+    output logic [3:0]       leds_out
 );
     
     // 4MB Memory (1048576 words of 32 bits)
+    // Note: Memory width is kept at 32 bits (word addressable)
     logic [31:0] ram_memory [0:1048575];
     logic [3:0]  led_reg;
     integer sig_file; // File handle for signature dump
 
     // Alignment signals
-    logic [31:0] word_addr;
-    logic [1:0]  byte_offset;
-    logic [31:0] mem_read_word;
+    logic [ALEN-1:0] word_addr;
+    logic [1:0]      byte_offset;
+    logic [31:0]     mem_read_word;
     
+    // Localparams for padding
+    localparam PAD_BYTE = XLEN - 8;
+    localparam PAD_HALF = XLEN - 16;
+    localparam PAD_WORD = XLEN - 32;
+
     // 1. Extract the word from memory purely with combinational logic
     assign mem_read_word = (word_addr < 1048576) ? ram_memory[word_addr] : 32'b0;
 
@@ -27,46 +33,73 @@ module DataMemory (
     assign byte_offset = Address[1:0];        // Byte offset within the word
     assign leds_out = led_reg;
 
+    // --- Pre-calculated Sign/Zero Extended Values (to avoid constant select errors in always_comb) ---
+    logic [XLEN-1:0] lb_0, lb_1, lb_2, lb_3;
+    logic [XLEN-1:0] lh_0, lh_1, lh_2;
+    logic [XLEN-1:0] lbu_0, lbu_1, lbu_2, lbu_3;
+    logic [XLEN-1:0] lhu_0, lhu_1, lhu_2;
+    logic [XLEN-1:0] lw_0;
+
+    assign lb_0 = {{ (PAD_BYTE){mem_read_word[7]} },  mem_read_word[7:0]};
+    assign lb_1 = {{ (PAD_BYTE){mem_read_word[15]} }, mem_read_word[15:8]};
+    assign lb_2 = {{ (PAD_BYTE){mem_read_word[23]} }, mem_read_word[23:16]};
+    assign lb_3 = {{ (PAD_BYTE){mem_read_word[31]} }, mem_read_word[31:24]};
+
+    assign lh_0 = {{ (PAD_HALF){mem_read_word[15]} }, mem_read_word[15:0]};
+    assign lh_1 = {{ (PAD_HALF){mem_read_word[23]} }, mem_read_word[23:8]};
+    assign lh_2 = {{ (PAD_HALF){mem_read_word[31]} }, mem_read_word[31:16]};
+
+    assign lbu_0 = {{ (PAD_BYTE){1'b0} }, mem_read_word[7:0]};
+    assign lbu_1 = {{ (PAD_BYTE){1'b0} }, mem_read_word[15:8]};
+    assign lbu_2 = {{ (PAD_BYTE){1'b0} }, mem_read_word[23:16]};
+    assign lbu_3 = {{ (PAD_BYTE){1'b0} }, mem_read_word[31:24]};
+
+    assign lhu_0 = {{ (PAD_HALF){1'b0} }, mem_read_word[15:0]};
+    assign lhu_1 = {{ (PAD_HALF){1'b0} }, mem_read_word[23:8]};
+    assign lhu_2 = {{ (PAD_HALF){1'b0} }, mem_read_word[31:16]};
+
+    assign lw_0 = {{ (PAD_WORD){mem_read_word[31]} }, mem_read_word};
+
     // --- READ LOGIC ---
     always_comb begin
-        ReadData = 32'hdeadbeef; // Default value for debugging
+        ReadData = {XLEN{1'b0}}; // Default value (avoid latches, though logic covers all)
         if (word_addr < 1048576) begin
             case (funct3)
                 F3_BYTE: begin // Load Byte (lb)
                     case (byte_offset)
-                        2'b00: ReadData = {{24{mem_read_word[7]}},  mem_read_word[7:0]};
-                        2'b01: ReadData = {{24{mem_read_word[15]}}, mem_read_word[15:8]};
-                        2'b10: ReadData = {{24{mem_read_word[23]}}, mem_read_word[23:16]};
-                        2'b11: ReadData = {{24{mem_read_word[31]}}, mem_read_word[31:24]};
+                        2'b00: ReadData = lb_0;
+                        2'b01: ReadData = lb_1;
+                        2'b10: ReadData = lb_2;
+                        2'b11: ReadData = lb_3;
                     endcase
                 end
                 F3_HALF: begin // Load Half-word (lh)
                     case (byte_offset)
-                        2'b00: ReadData = {{16{mem_read_word[15]}}, mem_read_word[15:0]};
-                        2'b01: ReadData = {{16{mem_read_word[23]}}, mem_read_word[23:8]};
-                        2'b10: ReadData = {{16{mem_read_word[31]}}, mem_read_word[31:16]};
+                        2'b00: ReadData = lh_0;
+                        2'b01: ReadData = lh_1;
+                        2'b10: ReadData = lh_2;
                         default: ReadData = 32'hdeadbeef; // Should not be taken in tests
                     endcase
                 end
-                F3_BU: begin // Load Byte Unsigned (lbu)
+                F3_LBU: begin // Load Byte Unsigned (lbu)
                     case (byte_offset)
-                        2'b00: ReadData = {24'b0, mem_read_word[7:0]};
-                        2'b01: ReadData = {24'b0, mem_read_word[15:8]};
-                        2'b10: ReadData = {24'b0, mem_read_word[23:16]};
-                        2'b11: ReadData = {24'b0, mem_read_word[31:24]};
+                        2'b00: ReadData = lbu_0;
+                        2'b01: ReadData = lbu_1;
+                        2'b10: ReadData = lbu_2;
+                        2'b11: ReadData = lbu_3;
                     endcase
                 end
-                F3_HU: begin // Load Half-word Unsigned (lhu)
+                F3_LHU: begin // Load Half-word Unsigned (lhu)
                     case (byte_offset)
-                        2'b00: ReadData = {16'b0, mem_read_word[15:0]};
-                        2'b01: ReadData = {16'b0, mem_read_word[23:8]};
-                        2'b10: ReadData = {16'b0, mem_read_word[31:16]};
-                        default: ReadData = 32'hdeadbeef; // Should not be taken in tests
+                        2'b00: ReadData = lhu_0;
+                        2'b01: ReadData = lhu_1;
+                        2'b10: ReadData = lhu_2;
+                        default: ReadData = 32'hdeadbeef; 
                     endcase
                 end
                 default: begin // Load Word (lw) or other
                     if (byte_offset == 2'b00)
-                        ReadData = mem_read_word;
+                        ReadData = lw_0;
                     else
                         ReadData = 32'hdeadbeef; // lw with misaligned address
                 end
@@ -75,7 +108,7 @@ module DataMemory (
     end
 
     // --- WRITE LOGIC ---
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (MemWrite) begin
             // 1. MMIO - LEDs
             if (Address == 32'h8000_0000) begin
@@ -102,7 +135,8 @@ module DataMemory (
 
             // 3. RAM Write
             else if (word_addr < 1048575) begin
-                logic [31:0] new_word = mem_read_word;
+                logic [31:0] new_word;
+                new_word = mem_read_word;
                 case (funct3)
                     F3_BYTE: begin // sb
                         case (byte_offset)
@@ -122,7 +156,7 @@ module DataMemory (
                     end
                     F3_WORD: begin // sw
                         if (byte_offset == 2'b00)
-                            new_word = WriteData;
+                            new_word = WriteData[31:0];
                     end
                 endcase
                 ram_memory[word_addr] <= new_word;

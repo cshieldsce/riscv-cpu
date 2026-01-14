@@ -1,8 +1,12 @@
 package riscv_pkg;
 
-    parameter ADDR_WIDTH = 32;
-    parameter DATA_WIDTH = 32;
+    // --- ARCHITECTURAL PARAMETERS ---
+    parameter XLEN = 32;
+    parameter ALEN = 32;
     parameter LED_WIDTH  = 4;
+    
+    // --- MEMORY MAP ---
+    parameter logic [ALEN-1:0] MMIO_LED_ADDR = 32'hFFFF_FFF0;
 
     // --- OPCODES (RV32I) ---
     typedef enum logic [6:0] {
@@ -33,19 +37,28 @@ package riscv_pkg;
         ALU_SLTU = 4'b1000
     } alu_op_t;
 
-    // --- FUNCT3 CODES (Data Size) ---
+    // --- FUNCT3 CODES (ALU / R-Type / I-Type) ---
+    typedef enum logic [2:0] {
+        F3_ADD_SUB = 3'b000, // add, sub, addi
+        F3_SLL     = 3'b001, // sll, slli
+        F3_SLT     = 3'b010, // slt, slti
+        F3_SLTU    = 3'b011, // sltu, sltiu
+        F3_XOR     = 3'b100, // xor, xori
+        F3_SRL_SRA = 3'b101, // srl, sra, srli, srai
+        F3_OR      = 3'b110, // or, ori
+        F3_AND     = 3'b111  // and, andi
+    } funct3_alu_t;
+
+    // --- FUNCT3 CODES (Memory) ---
     typedef enum logic [2:0] {
         F3_BYTE  = 3'b000, // lb, sb
         F3_HALF  = 3'b001, // lh, sh
         F3_WORD  = 3'b010, // lw, sw
-        F3_IM    = 3'b011, // sltu, sltiu
-        F3_BU    = 3'b100, // lbu
-        F3_HU    = 3'b101,  // lhu
-        F3_OR    = 3'b110, // or, ori
-        F3_AND   = 3'b111  // and, andi
+        F3_LBU   = 3'b100, // lbu
+        F3_LHU   = 3'b101  // lhu
     } funct3_mem_t;
 
-    // --- FUNCT3 CODES (Branch Instructions) ---
+    // --- FUNCT3 CODES (Branch) ---
     typedef enum logic [2:0] {
         F3_BEQ  = 3'b000,
         F3_BNE  = 3'b001,

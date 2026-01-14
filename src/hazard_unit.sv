@@ -1,23 +1,25 @@
+import riscv_pkg::*;
+
 module HazardUnit (
     // Inputs from ID Stage (Current Instruction)
-    input logic [4:0] id_rs1,
-    input logic [4:0] id_rs2,
+    input  logic [4:0] id_rs1,
+    input  logic [4:0] id_rs2,
 
     // Inputs from EX Stage (Previous Instruction)
-    input logic [4:0] id_ex_rd,
-    input logic id_ex_mem_read, // High if instruction in EX is a load
+    input  logic [4:0] id_ex_rd,
+    input  logic       id_ex_mem_read, // High if instruction in EX is a load
     
     // Inputs from Branch Logic
-    input logic PCSrc,        // High if branch is taken
-
+    input  logic       PCSrc,        // High if branch is taken
+    
     // Early jump detection from ID stage
-    input logic jump_id_stage,
+    input  logic       jump_id_stage,
     
     // Outputs to Control Signals
-    output logic stall_if,        // Freeze PC
-    output logic stall_id,        // Freeze IF/ID register
-    output logic flush_ex,        // Flush ID/EX register (insert NOP)
-    output logic flush_id         // Flush IF/ID register
+    output logic       stall_if,        // Freeze PC
+    output logic       stall_id,        // Freeze IF/ID register
+    output logic       flush_ex,        // Flush ID/EX register (insert NOP)
+    output logic       flush_id         // Flush IF/ID register
 );
 
     always_comb begin : HazardUnit
@@ -27,32 +29,62 @@ module HazardUnit (
         flush_ex = 0;
         flush_id = 0;
 
-        // --- LOAD-USE HAZARD DETECTION ---
-        // If the instruction in EX is a Load (reading from memory)
-        // AND it writes to a register that the current instruction in ID needs.
-        if (id_ex_mem_read && ((id_ex_rd == id_rs1) || (id_ex_rd == id_rs2))) begin
-            stall_if = 1;   // Freeze PC
-            stall_id = 1;   // Freeze IF/ID register
-            flush_ex = 1;   // Insert NOP in EX stage
-        end
-        
-        // --- CONTROL HAZARD DETECTION ---
-        // When PCSrc goes high, a branch/jump in EX stage has been taken.
-        // At this moment in the pipeline:
-        //   - IF/ID: Contains instruction from wrong path (fetched from PC+4 of branch)
-        //   - ID/EX: Contains the branch/jump itself OR instruction before it
-        //   - EX/MEM and beyond: Instructions that should complete
+        // ========================================================================
+        // 1. LOAD-USE HAZARD DETECTION
+        // ========================================================================
+        // Situation:
+        //   Instruction in EX is a Load (e.g., lw x1, 0(x2)).
+        //   Instruction in ID needs the result (e.g., add x3, x1, x4).
         //
-        // We only flush IF/ID to kill the speculatively fetched instruction.
-        // We do NOT flush ID/EX because it may contain instructions that must complete.
-        else if (PCSrc) begin
-            flush_id = 1;   // Kill instruction in IF/ID (speculative fetch)
+        // Action:
+        //   We must stall the pipeline for 1 cycle because the load data
+        //   won't be available until the WB stage (forwarding can't help here).
+        //
+        // Logic:
+        //   If (EX.MemRead) AND (EX.rd matches ID.rs1 OR ID.rs2):
+        //     - Stall PC (stall_if)
+        //     - Stall IF/ID (stall_id)
+        //     - Flush ID/EX (flush_ex) -> Inject NOP into EX stage
+        //
+        if (id_ex_mem_read && ((id_ex_rd == id_rs1) || (id_ex_rd == id_rs2))) begin
+            stall_if = 1; 
+            stall_id = 1;
             flush_ex = 1;
         end
         
-        // Early jump detected in ID stage - only flush IF/ID
+        // ========================================================================
+        // 2. CONTROL HAZARD DETECTION
+        // ========================================================================
+        
+        // --- Case A: Branch/JALR Taken (Resolved in EX Stage) ---
+        // Situation:
+        //   A Branch or JALR instruction in EX stage evaluates to TAKEN.
+        //   The pipeline has already fetched instructions from the fall-through path
+        //   into the ID and IF stages. These are WRONG path instructions.
+        //
+        // Action:
+        //   Flush BOTH the IF/ID and ID/EX registers.
+        //   - flush_id: Kills the instruction currently leaving IF (entering ID).
+        //   - flush_ex: Kills the instruction currently leaving ID (entering EX).
+        //
+        else if (PCSrc) begin
+            flush_id = 1;
+            flush_ex = 1;
+        end
+        
+        // --- Case B: JAL (Resolved in ID Stage) ---
+        // Situation:
+        //   A JAL instruction is decoded in the ID stage.
+        //   We know the target address immediately (PC + Imm).
+        //   The pipeline has already fetched the instruction at PC+4 into IF.
+        //
+        // Action:
+        //   Flush ONLY the IF/ID register.
+        //   - flush_id: Kills the instruction at PC+4 (wrong path).
+        //   - The JAL instruction itself proceeds to EX validly.
+        //
         else if (jump_id_stage) begin
-            flush_id = 1;  // Kill the instruction just fetched
+            flush_id = 1;
         end
     end
 endmodule

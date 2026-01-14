@@ -1,10 +1,12 @@
+import riscv_pkg::*;
+
 module IF_Stage (
-    input logic clk, rst,
-    input logic [31:0] next_pc_in,
-    input logic [31:0] instruction_in,  // External instruction
-    output logic [31:0] instruction_out,
-    output logic [31:0] pc_out,
-    output logic [31:0] pc_plus_4_out
+    input  logic            clk, rst,
+    input  logic [XLEN-1:0] next_pc_in,
+    input  logic [XLEN-1:0] instruction_in,  // External instruction
+    output logic [XLEN-1:0] instruction_out,
+    output logic [XLEN-1:0] pc_out,
+    output logic [XLEN-1:0] pc_plus_4_out
 );
 
     PC pc_inst (
