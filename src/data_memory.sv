@@ -23,13 +23,13 @@ module DataMemory (
     // 1. Extract the word from memory purely with combinational logic
     assign mem_read_word = (word_addr < 1048576) ? ram_memory[word_addr] : 32'b0;
 
-    assign word_addr = {2'b0, Address[31:2]}; // Word-aligned address
+    assign word_addr = Address >> 2;          // Word-aligned address
     assign byte_offset = Address[1:0];        // Byte offset within the word
     assign leds_out = led_reg;
 
     // --- READ LOGIC ---
-    always @(*) begin
-        ReadData = 32'b0; 
+    always_comb begin
+        ReadData = 32'hdeadbeef; // Default value for debugging
         if (word_addr < 1048576) begin
             case (funct3)
                 F3_BYTE: begin // Load Byte (lb)
@@ -41,9 +41,11 @@ module DataMemory (
                     endcase
                 end
                 F3_HALF: begin // Load Half-word (lh)
-                    case (byte_offset[1])
-                        1'b0: ReadData = {{16{mem_read_word[15]}}, mem_read_word[15:0]};
-                        1'b1: ReadData = {{16{mem_read_word[31]}}, mem_read_word[31:16]};
+                    case (byte_offset)
+                        2'b00: ReadData = {{16{mem_read_word[15]}}, mem_read_word[15:0]};
+                        2'b01: ReadData = {{16{mem_read_word[23]}}, mem_read_word[23:8]};
+                        2'b10: ReadData = {{16{mem_read_word[31]}}, mem_read_word[31:16]};
+                        default: ReadData = 32'hdeadbeef; // Should not be taken in tests
                     endcase
                 end
                 F3_BU: begin // Load Byte Unsigned (lbu)
@@ -55,21 +57,24 @@ module DataMemory (
                     endcase
                 end
                 F3_HU: begin // Load Half-word Unsigned (lhu)
-                    case (byte_offset[1])
-                        1'b0: ReadData = {16'b0, mem_read_word[15:0]};
-                        1'b1: ReadData = {16'b0, mem_read_word[31:16]};
+                    case (byte_offset)
+                        2'b00: ReadData = {16'b0, mem_read_word[15:0]};
+                        2'b01: ReadData = {16'b0, mem_read_word[23:8]};
+                        2'b10: ReadData = {16'b0, mem_read_word[31:16]};
+                        default: ReadData = 32'hdeadbeef; // Should not be taken in tests
                     endcase
                 end
-                default: begin // Load Word (lw)
-                    ReadData = mem_read_word;
+                default: begin // Load Word (lw) or other
+                    if (byte_offset == 2'b00)
+                        ReadData = mem_read_word;
+                    else
+                        ReadData = 32'hdeadbeef; // lw with misaligned address
                 end
             endcase
         end
     end
 
     // --- WRITE LOGIC ---
-    logic [31:0] new_word;
-
     always @(posedge clk) begin
         if (MemWrite) begin
             // 1. MMIO - LEDs
@@ -96,29 +101,31 @@ module DataMemory (
             end
 
             // 3. RAM Write
-            else if (word_addr < 1048576) begin
-                new_word = mem_read_word;
+            else if (word_addr < 1048575) begin
+                logic [31:0] new_word = mem_read_word;
                 case (funct3)
-                    F3_BYTE: begin 
+                    F3_BYTE: begin // sb
                         case (byte_offset)
-                            2'b00: new_word = {mem_read_word[31:8], WriteData[7:0]};
+                            2'b00: new_word = {mem_read_word[31:8],  WriteData[7:0]};
                             2'b01: new_word = {mem_read_word[31:16], WriteData[7:0], mem_read_word[7:0]};
                             2'b10: new_word = {mem_read_word[31:24], WriteData[7:0], mem_read_word[15:0]};
-                            2'b11: new_word = {WriteData[7:0], mem_read_word[23:0]};
+                            2'b11: new_word = {WriteData[7:0],        mem_read_word[23:0]};
                         endcase
                     end
-                    F3_HALF: begin 
-                        case (byte_offset[1])
-                            1'b0: new_word = {mem_read_word[31:16], WriteData[15:0]};
-                            1'b1: new_word = {WriteData[15:0], mem_read_word[15:0]};
+                    F3_HALF: begin // sh
+                        case (byte_offset)
+                            2'b00: new_word = {mem_read_word[31:16], WriteData[15:0]};
+                            2'b01: new_word = {mem_read_word[31:24], WriteData[15:0], mem_read_word[7:0]};
+                            2'b10: new_word = {WriteData[15:0],      mem_read_word[15:0]};
+                            default:; // Misaligned across words, ignore
                         endcase
                     end
-                    default: begin 
-                        new_word = WriteData; 
+                    F3_WORD: begin // sw
+                        if (byte_offset == 2'b00)
+                            new_word = WriteData;
                     end
                 endcase
-                
-                ram_memory[word_addr] <= new_word; 
+                ram_memory[word_addr] <= new_word;
             end
         end
     end

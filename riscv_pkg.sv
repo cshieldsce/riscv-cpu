@@ -1,5 +1,9 @@
 package riscv_pkg;
 
+    parameter ADDR_WIDTH = 32;
+    parameter DATA_WIDTH = 32;
+    parameter LED_WIDTH  = 4;
+
     // --- OPCODES (RV32I) ---
     typedef enum logic [6:0] {
         OP_R_TYPE   = 7'b0110011, // add, sub, sll...
