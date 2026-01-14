@@ -1,23 +1,22 @@
+import riscv_pkg::*;
+
 module pipelined_cpu_tb;
 
-    logic clk;
-    logic rst;
-    
+    logic clk, rst;
     reg [2047:0] test_file;
 
-    // Wires for interconnections
-    logic [31:0] imem_addr;
-    logic [31:0] imem_data;
+    // Memory interface signals
+    logic [ADDR_WIDTH-1:0] imem_addr;
+    logic [DATA_WIDTH-1:0] imem_data;
     
-    logic [31:0] dmem_addr;
-    logic [31:0] dmem_rdata;
-    logic [31:0] dmem_wdata;
-    logic        dmem_we;
-    logic [3:0]  dmem_be; // Not used by DataMemory in this design, but good to have
-    logic [2:0]  dmem_funct3;
-    logic [3:0]  leds_out;
+    logic [ADDR_WIDTH-1:0] dmem_addr;
+    logic [DATA_WIDTH-1:0] dmem_rdata, dmem_wdata;
+    logic dmem_we;
+    logic [3:0] dmem_be;
+    logic [2:0] dmem_funct3;
+    logic [LED_WIDTH-1:0] leds_out;
 
-    // CPU Instance
+    // CPU instance
     PipelinedCPU cpu_inst (
         .clk(clk),
         .rst(rst),
@@ -32,13 +31,13 @@ module pipelined_cpu_tb;
         .leds_out(leds_out)
     );
 
-    // Instruction Memory Instance
+    // Instruction memory instance
     InstructionMemory imem_inst (
         .Address(imem_addr),
         .Instruction(imem_data)
     );
 
-    // Data Memory Instance
+    // Data memory instance
     DataMemory dmem_inst (
         .clk(clk),
         .MemWrite(dmem_we),
@@ -46,20 +45,18 @@ module pipelined_cpu_tb;
         .Address(dmem_addr),
         .WriteData(dmem_wdata),
         .ReadData(dmem_rdata),
-        .leds_out() // Unused in TB for now, or could monitor
+        .leds_out()  // Not monitored in testbench
     );
 
-    initial begin
-        clk = 0;
-    end
-    always begin
-        #5 clk = ~clk;
-    end
+    // Clock generator
+    initial clk = 0;
+    always #5 clk = ~clk;
 
     initial begin
         $dumpfile("waveform.vcd");
         $dumpvars(0, pipelined_cpu_tb);
         
+        // Load test program from command line argument
         if ($value$plusargs("TEST=%s", test_file)) begin
             $display("Loading Test: %0s", test_file);
             $readmemh(test_file, imem_inst.rom_memory);
@@ -69,37 +66,37 @@ module pipelined_cpu_tb;
             $finish;
         end
 
-        
         $display("\n-----------------------------------------------");
         $display("[*] Starting execution...");
-        $display("\nFirst 12 instructions in memory:");
+        $display("\nFirst 4 instructions in memory:");
         $display("  [0x00]: %h", imem_inst.rom_memory[0]);
         $display("  [0x04]: %h", imem_inst.rom_memory[1]);
         $display("  [0x08]: %h", imem_inst.rom_memory[2]);
         $display("  [0x0C]: %h", imem_inst.rom_memory[3]);
         
+        // Apply reset
         rst = 1;
         repeat(2) @(posedge clk); 
         rst = 0;
                 
-        // Run until $finish is called by tohost write in DataMemory
         $display("Waiting for tohost write...\n");
         
-        // Add a timeout
+        // Timeout mechanism
         fork
             begin : timeout_block
-                #50000000; // Increased timeout
+                #50000000;
                 $display("\n--- Simulation Timeout! tohost not written. ---");
                 $finish;
             end
             begin : main_simulation
-                // Empty block, simulation runs until $finish from DataMemory
+                // Runs until $finish from DataMemory
             end
         join_none
+        
         $display("[*] Simulation ended.");
         $display("-----------------------------------------------\n");
 
-        wait(0); // block forever
+        wait(0);  // Block forever
     end
 
 endmodule
