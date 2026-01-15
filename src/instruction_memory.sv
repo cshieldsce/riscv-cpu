@@ -1,6 +1,8 @@
 import riscv_pkg::*;
 
 module InstructionMemory (
+    input  logic            clk,
+    input  logic            en,
     input  logic [ALEN-1:0] Address,
     output logic [31:0]     Instruction
 );
@@ -19,7 +21,11 @@ module InstructionMemory (
     logic [ALEN-1:0] word_addr;
     assign word_addr = Address >> 2;
     
-    // Bounds checking
-    assign Instruction = (word_addr < 1048576) ? rom_memory[word_addr] : 32'h00000013;
+    // Synchronous read logic
+    always_ff @(posedge clk) begin
+        if (en) begin
+            Instruction <= (word_addr < 1048576) ? rom_memory[word_addr] : 32'h00000013;
+        end
+    end
 
 endmodule

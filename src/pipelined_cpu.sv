@@ -8,6 +8,7 @@ module PipelinedCPU (
     // Instruction memory interface
     output logic [ALEN-1:0]  imem_addr,
     input  logic [31:0]      imem_data,
+    output logic             imem_en,
     
     // Data memory interface
     output logic [ALEN-1:0]  dmem_addr,
@@ -60,7 +61,8 @@ module PipelinedCPU (
 
     // IF/ID PIPELINE REGISTER
     logic [XLEN-1:0] if_id_pc, if_id_pc_plus_4;
-    logic [31:0]     if_id_instruction;
+    logic [31:0]     if_id_valid_vector; // Used to store validity flag
+    logic            if_id_valid;
 
     // --- ID: INSTRUCTION DECODE ---
     logic [XLEN-1:0] id_read_data1, id_read_data2, id_imm_out;
@@ -186,25 +188,35 @@ module PipelinedCPU (
     
     assign if_instruction = if_instruction_wire[31:0];
     assign imem_addr = if_pc;
+    assign imem_en = ~stall_id;
 
     // IF/ID PIPELINE REGISTER
+    // Note: We repurpose the "Instruction" field to store a "Valid" flag (32'd1).
+    // If flushed, the register clears to 0, invalidating the instruction.
     PipelineRegister #(IF_ID_WIDTH) if_id_reg (
         .clk(clk),
         .rst(rst),
         .en(~stall_id),
         .clear(flush_id),
-        .in({if_pc, if_instruction, if_pc_plus_4}),
-        .out({if_id_pc, if_id_instruction, if_id_pc_plus_4}) 
+        .in({if_pc, 32'd1, if_pc_plus_4}), 
+        .out({if_id_pc, if_id_valid_vector, if_id_pc_plus_4}) 
     );
+    
+    assign if_id_valid = if_id_valid_vector[0];
 
     // ========================================================================
     // ID: INSTRUCTION DECODE
     // ========================================================================
 
+    logic [31:0] id_instruction_muxed;
+    // BRAM Adaptation: If the IF/ID register is valid (not flushed), use memory data.
+    // Otherwise (flushed/reset), use NOP.
+    assign id_instruction_muxed = (if_id_valid) ? imem_data : 32'h00000013;
+
     ID_Stage id_stage_inst (
         .clk(clk),
         .rst(rst),
-        .instruction(if_id_instruction),
+        .instruction(id_instruction_muxed),
         .pc(if_id_pc),
         .reg_write_wb(mem_wb_reg_write),
         .write_data_wb(wb_write_data),
@@ -385,7 +397,7 @@ module PipelinedCPU (
     always_comb begin
         case (mem_wb_mem_to_reg)
             2'b00: wb_write_data = mem_wb_alu_result; 
-            2'b01: wb_write_data = mem_wb_read_data;  
+            2'b01: wb_write_data = mem_read_data;     // Bypassed MEM/WB register for BRAM
             2'b10: wb_write_data = mem_wb_pc_plus_4;  
             default: wb_write_data = {XLEN{1'b0}};
         endcase

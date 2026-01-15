@@ -8,6 +8,7 @@ module pipelined_cpu_tb;
     // Memory interface signals
     logic [ALEN-1:0] imem_addr;
     logic [31:0]     imem_data; // Instruction is always 32 bits
+    logic            imem_en;   // Instruction Memory Enable
     
     logic [ALEN-1:0] dmem_addr;
     logic [XLEN-1:0] dmem_rdata, dmem_wdata;
@@ -22,6 +23,7 @@ module pipelined_cpu_tb;
         .rst(rst),
         .imem_addr(imem_addr),
         .imem_data(imem_data),
+        .imem_en(imem_en),
         .dmem_addr(dmem_addr),
         .dmem_rdata(dmem_rdata),
         .dmem_wdata(dmem_wdata),
@@ -33,6 +35,8 @@ module pipelined_cpu_tb;
 
     // Instruction memory instance
     InstructionMemory imem_inst (
+        .clk(clk),
+        .en(imem_en),
         .Address(imem_addr),
         .Instruction(imem_data)
     );
@@ -41,6 +45,7 @@ module pipelined_cpu_tb;
     DataMemory dmem_inst (
         .clk(clk),
         .MemWrite(dmem_we),
+        .be(dmem_be),
         .funct3(dmem_funct3),
         .Address(dmem_addr),
         .WriteData(dmem_wdata),
