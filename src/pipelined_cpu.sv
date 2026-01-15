@@ -18,7 +18,8 @@ module PipelinedCPU (
     output logic [3:0]       dmem_be,
     output logic [2:0]       dmem_funct3,
     
-    output logic [3:0]       leds_out
+    output logic [3:0]       leds_out,
+    output logic             uart_tx_wire
 );
 
     // ========================================================================
@@ -361,7 +362,8 @@ module PipelinedCPU (
         .mem_write_en(ex_mem_mem_write),
         .funct3(ex_mem_funct3),
         .dmem_be(dmem_be),
-        .leds_out(leds_out)
+        .leds_out(leds_out),
+        .uart_tx_wire(uart_tx_wire)
     );
     
     assign mem_read_data = dmem_rdata;

@@ -14,7 +14,8 @@ module MEM_Stage (
     output logic [3:0]       dmem_be,
     
     // MMIO Outputs
-    output logic [3:0]       leds_out
+    output logic [3:0]       leds_out,
+    output logic             uart_tx_wire
 );
 
     // --- 1. Byte Enable Generation ---

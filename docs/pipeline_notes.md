@@ -121,3 +121,26 @@ This unit looks at the instruction in the Decode (ID) stage and the instruction 
 ```logic
 IF (Instruction in EX is a Load) AND (Destination of Load == Source 1 or Source 2 of ID instruction) THEN Stall.
 ```
+
+## FPGA Silicon Adaptation (BRAM Timing)
+
+To support real FPGA hardware, the memory architecture has been adapted to use **Synchronous Block RAM (BRAM)**, which has a 1-cycle read latency.
+
+### 1. Instruction Memory (Fetch)
+- **Old Behavior**: Combinational read. Address in cycle N -> Data in cycle N.
+- **New Behavior**: Synchronous read. Address in cycle N -> Data in cycle N+1.
+- **Impact**: The output of `InstructionMemory` effectively acts as the `Instruction` field of the **IF/ID Pipeline Register**.
+- **Changes**:
+    - `InstructionMemory` output is connected *directly* to the `ID_Stage`.
+    - The `IF_ID` register's `Instruction` field is bypassed/ignored.
+    - `imem_en` signal added to control stalls (connected to `~stall_id`).
+
+### 2. Data Memory (Load/Store)
+- **Old Behavior**: Combinational read. Address in EX stage -> Data valid in MEM stage.
+- **New Behavior**: Synchronous read. Address in MEM stage -> Data valid in WB stage.
+- **Impact**: The output of `DataMemory` effectively acts as the `ReadData` field of the **MEM/WB Pipeline Register**.
+- **Changes**:
+    - `DataMemory` output is connected *directly* to the Writeback Mux.
+    - The `MEM/WB` register's `ReadData` field is bypassed.
+    - Writes now use Byte Enables (`be`) for true hardware support.
+

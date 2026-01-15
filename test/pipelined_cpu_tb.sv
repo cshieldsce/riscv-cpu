@@ -16,6 +16,7 @@ module pipelined_cpu_tb;
     logic [3:0] dmem_be;
     logic [2:0] dmem_funct3;
     logic [LED_WIDTH-1:0] leds_out;
+    logic                 uart_tx_wire;
 
     // CPU instance
     PipelinedCPU cpu_inst (
@@ -30,7 +31,8 @@ module pipelined_cpu_tb;
         .dmem_we(dmem_we),
         .dmem_be(dmem_be),
         .dmem_funct3(dmem_funct3),
-        .leds_out(leds_out)
+        .leds_out(leds_out),
+        .uart_tx_wire(uart_tx_wire)
     );
 
     // Instruction memory instance
@@ -50,7 +52,8 @@ module pipelined_cpu_tb;
         .Address(dmem_addr),
         .WriteData(dmem_wdata),
         .ReadData(dmem_rdata),
-        .leds_out()  // Not monitored in testbench
+        .leds_out(),
+        .uart_tx_wire(uart_tx_wire)
     );
 
     // Clock generator
