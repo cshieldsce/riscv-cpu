@@ -18,7 +18,7 @@ module DataMemory (
     logic       uart_busy;
 
     uart_tx #(
-        .CLKS_PER_BIT(868) // 115200 at 100MHz (standard for PYNQ-Z2 is 125MHz, we will adjust later)
+        .CLKS_PER_BIT(68) // 115200 at 7.8125MHz (125MHz / 16)
     ) uart_inst (
         .clk(clk),
         .rst(1'b0), // Will use a proper reset in fpga_top
