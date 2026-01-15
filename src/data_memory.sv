@@ -12,7 +12,7 @@ module DataMemory (
     output logic             uart_tx_wire // Physical TX pin
 );
     
-    // UART TX Instance
+    // UART TX Instances
     logic [7:0] uart_data;
     logic       uart_start;
     logic       uart_busy;
