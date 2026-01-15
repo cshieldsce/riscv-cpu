@@ -50,6 +50,21 @@ The repository includes automated workflows to maintain code quality:
 2.  **Compliance Suite (`compliance.yml`)**: A comprehensive workflow that builds Spike and runs the official RISC-V Architecture Test suite. 
     *   *Note: These are both configured with `workflow_dispatch` to be run manually or on PRs affecting core logic to optimize resource usage.*
 
+## FPGA Implementation (PYNQ-Z2)
+
+This core is optimized for FPGA implementation using **Synchronous BRAM** and memory-mapped peripherals.
+
+### Quick Start (Vivado)
+1. Generate the Vivado project:
+   ```bash
+   vivado -mode batch -source create_project.tcl
+   ```
+2. Open `vivado_project/riscv_cpu.xpr` in Vivado.
+3. Click **Generate Bitstream**.
+4. Program your PYNQ-Z2 and monitor UART at **115200 baud**.
+
+---
+
 ## Tools & Requirements
 
 - **Simulator:** [Icarus Verilog](https://steveicarus.github.io/iverilog/) (`iverilog`) v12.0+
