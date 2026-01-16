@@ -1,6 +1,7 @@
 ## Clock Signal
 set_property -dict { PACKAGE_PIN H16   IOSTANDARD LVCMOS33 } [get_ports { sysclk }]; # 125MHz Clock
 create_clock -add -name sys_clk_pin -period 8.00 -waveform {0 4} [get_ports { sysclk }];
+create_generated_clock -name cpu_clk -source [get_ports sysclk] -divide_by 16 [get_pins clk_div_reg[3]/Q]
 
 ## Reset Button (BTN0)
 set_property -dict { PACKAGE_PIN D19   IOSTANDARD LVCMOS33 } [get_ports { reset_btn }];
