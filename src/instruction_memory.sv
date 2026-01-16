@@ -7,7 +7,7 @@ module InstructionMemory (
     output logic [31:0]     Instruction
 );
 
-    logic [31:0] rom_memory [0:1023]; // 4KB small ROM for hardware test
+    logic [31:0] rom_memory [0:4095]; // 4KB small ROM for hardware test
 
     // --- HARDWARE TEST PROGRAM ---
     // This runs automatically on the FPGA
@@ -41,7 +41,7 @@ module InstructionMemory (
         rom_memory[9] = 32'he99ff06f;
 
         // Fill rest with NOP
-        for (int i = 10; i < 1024; i = i + 1) begin
+        for (int i = 10; i < 4096; i = i + 1) begin
             rom_memory[i] = 32'h00000013;
         end
     end
@@ -51,7 +51,7 @@ module InstructionMemory (
     
     always_ff @(posedge clk) begin
         if (en) begin
-            Instruction <= (word_addr < 1024) ? rom_memory[word_addr] : 32'h00000013;
+            Instruction <= (word_addr < 4096) ? rom_memory[word_addr] : 32'h00000013;
         end
     end
 

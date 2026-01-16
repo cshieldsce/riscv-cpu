@@ -29,8 +29,8 @@ module DataMemory (
         .tx_done()
     );
 
-    // 4MB Memory (1048576 words of 32 bits)
-    logic [31:0] ram_memory [0:1048575];
+    // 4MB Memory (4096 words of 32 bits)
+    logic [31:0] ram_memory [0:4095];
     logic [3:0]  led_reg;
     integer sig_file; 
 
@@ -50,7 +50,7 @@ module DataMemory (
     // --- Synchronous Read & Write ---
     always_ff @(posedge clk) begin
         // READ: Always read (synchronous BRAM behavior)
-        if (word_addr < 1048576) 
+        if (word_addr < 4096) 
             mem_read_word_reg <= ram_memory[word_addr];
         else
             mem_read_word_reg <= 32'b0;
@@ -87,15 +87,15 @@ module DataMemory (
                 end
 
                 sig_file = $fopen("signature.txt", "w");
-                for (int i = 524288; i < 526336; i = i + 1) begin
-                    $fwrite(sig_file, "%h\n", ram_memory[i]);
-                end
+                // for (int i = 524288; i < 526336; i = i + 1) begin
+                //     $fwrite(sig_file, "%h\n", ram_memory[i]);
+                // end
                 $fclose(sig_file);
                 $finish;
             end
 
             // 4. RAM Write (Byte Enabled)
-            else if (word_addr < 1048575) begin
+            else if (word_addr < 4096) begin
                 logic [31:0] wdata_shifted;
                 // Align data: CPU puts data in LSBs, we must shift to correct lane
                 wdata_shifted = WriteData << (byte_offset * 8);
