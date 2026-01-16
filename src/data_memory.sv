@@ -31,7 +31,7 @@ module DataMemory (
 
     // 4MB Memory (4096 words of 32 bits)
     logic [31:0] ram_memory [0:4095];
-    logic [3:0]  led_reg;
+    logic [3:0]  led_reg = 4'b1111;
     integer sig_file; 
 
     logic [ALEN-1:0] word_addr;
