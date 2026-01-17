@@ -41,9 +41,7 @@ module pynq_z2_top (
         .dmem_wdata(dmem_wdata),
         .dmem_we(dmem_we),
         .dmem_be(dmem_be),
-        .dmem_funct3(dmem_funct3),
-        .leds_out(led),
-        .uart_tx_wire(uart_tx)
+        .dmem_funct3(dmem_funct3)
     );
 
     // --- 4. Instruction Memory ---
@@ -63,8 +61,8 @@ module pynq_z2_top (
         .Address(dmem_addr),
         .WriteData(dmem_wdata),
         .ReadData(dmem_rdata),
-        .leds_out(),      // LEDs driven by CPU directly
-        .uart_tx_wire()   // UART driven by CPU directly
+        .leds_out(led),      // LEDs driven by CPU directly
+        .uart_tx_wire(uart_tx)   // UART driven by CPU directly
     );
 
 endmodule
